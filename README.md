@@ -15,6 +15,7 @@ The playbook (`main.yml`) has two plays:
 
   1. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. The dashboard is served on port 443.
   2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node. Per-node model settings live in `host_vars/`.
+  3. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
 
 ## Setup
 
@@ -59,6 +60,14 @@ The playbook (`main.yml`) has two plays:
   10. (Optional) Add integrations in the dashboard: the GitHub MCP server (**Extensions → MCP Servers**, `https://api.githubcopilot.com/mcp/readonly` with a read-only PAT), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
 
 To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > backup.sql`) and run the playbook again.
+
+## Monitoring
+
+Open `http://<turnstone-node-ip>:3000` (the playbook prints the URL) for the **Turnstone Cluster** dashboard. It's read-only and needs no login. It shows cluster-wide totals at the top, then one row per node with CPU, RAM, GPU utilization and power, decode/prefill tokens/s, running/waiting requests, and KV cache usage.
+
+Prometheus recording rules (`files/monitoring/rules.yml`) put vLLM, llama.cpp, and Radiance metrics under the same names (`llm:*`, `gpu:*`, `node:*`), so every node's row looks the same regardless of runtime. Each node's `llm_metrics_type` (`vllm`, `llamacpp`, or `radiance`) tells Prometheus how to scrape it. Radiance's `/stats` JSON is converted by `json_exporter`.
+
+Prometheus itself listens only on `127.0.0.1:9090` on the Turnstone node. To edit dashboards in Grafana, log in as `admin` (set `grafana_admin_password` in `config.yml`). The provisioned dashboard is read-only, so save edits as a copy, or change `files/monitoring/grafana/turnstone-cluster.json`.
 
 ## License
 

@@ -15,6 +15,7 @@ ExecStart=/usr/local/bin/llama-server \
 {% for arg in llama_cpp_server_args %}
   {{ arg }} \
 {% endfor %}
+  --metrics \
   --host 0.0.0.0 --port {{ llm_port }} \
   --alias {{ llm_model_name }}
 Restart=on-failure

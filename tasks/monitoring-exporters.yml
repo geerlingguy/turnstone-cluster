@@ -1,0 +1,100 @@
+---
+# Prometheus exporters on every node: node_exporter for CPU, RAM, and AMD GPUs
+# (via its drm and hwmon collectors), plus nvidia_gpu_exporter on NVIDIA nodes.
+- name: Ensure the exporter user exists.
+  ansible.builtin.user:
+    name: exporter
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+  become: true
+
+- name: Download node_exporter.
+  ansible.builtin.unarchive:
+    src: "{{ node_exporter_url }}"
+    dest: /opt
+    remote_src: true
+    creates: "/opt/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}/node_exporter"
+  become: true
+
+# SELinux won't let systemd run binaries from /opt, so install to /usr/local/bin.
+- name: Install node_exporter.
+  ansible.builtin.copy:
+    src: "/opt/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    remote_src: true
+    mode: "0755"
+    setype: bin_t
+  become: true
+  notify: Restart node_exporter
+
+- name: Configure the node_exporter service.
+  ansible.builtin.template:
+    src: templates/monitoring/node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: "0644"
+  become: true
+  notify: Restart node_exporter
+
+- name: Ensure node_exporter is running and enabled at boot.
+  ansible.builtin.systemd_service:
+    name: node_exporter
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+
+- name: Set up nvidia_gpu_exporter on NVIDIA nodes.
+  when: llm_gpu_vendor == 'nvidia'
+  block:
+    - name: Ensure the nvidia_gpu_exporter directory exists.
+      ansible.builtin.file:
+        path: "/opt/nvidia_gpu_exporter-{{ nvidia_gpu_exporter_version }}"
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: Download nvidia_gpu_exporter.
+      ansible.builtin.unarchive:
+        src: "{{ nvidia_gpu_exporter_url }}"
+        dest: "/opt/nvidia_gpu_exporter-{{ nvidia_gpu_exporter_version }}"
+        remote_src: true
+        creates: "/opt/nvidia_gpu_exporter-{{ nvidia_gpu_exporter_version }}/nvidia_gpu_exporter"
+      become: true
+
+    - name: Install nvidia_gpu_exporter.
+      ansible.builtin.copy:
+        src: "/opt/nvidia_gpu_exporter-{{ nvidia_gpu_exporter_version }}/nvidia_gpu_exporter"
+        dest: /usr/local/bin/nvidia_gpu_exporter
+        remote_src: true
+        mode: "0755"
+      become: true
+      notify: Restart nvidia_gpu_exporter
+
+    - name: Configure the nvidia_gpu_exporter service.
+      ansible.builtin.template:
+        src: templates/monitoring/nvidia_gpu_exporter.service.j2
+        dest: /etc/systemd/system/nvidia_gpu_exporter.service
+        mode: "0644"
+      become: true
+      notify: Restart nvidia_gpu_exporter
+
+    - name: Ensure nvidia_gpu_exporter is running and enabled at boot.
+      ansible.builtin.systemd_service:
+        name: nvidia_gpu_exporter
+        state: started
+        enabled: true
+        daemon_reload: true
+      become: true
+
+- name: Allow LAN access to the exporters (firewalld).
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family=ipv4 source address={{ llm_allowed_network }}
+      port port={{ item }} protocol=tcp accept
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ [9100] + ([9835] if llm_gpu_vendor == 'nvidia' else []) }}"
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'

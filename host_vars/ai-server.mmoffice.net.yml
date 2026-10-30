@@ -7,6 +7,7 @@
 # 2x R9700, too tight with 64 GB.
 llm_runtime: docker
 llm_gpu_vendor: amd
+llm_metrics_type: radiance
 llm_install_docker: true
 llm_model_name: qwen3.8-27b-r9700
 llm_max_concurrency: 8  # Matches --max-num-seqs below.

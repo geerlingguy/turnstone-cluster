@@ -131,3 +131,37 @@
           - "Base URL: http://{{ ansible_facts['default_ipv4']['address'] | default(inventory_hostname) }}:{{ llm_port }}/v1"
           - "API key: {{ 'see config.yml (llm_api_key)' if llm_api_key else 'none' }}"
           - "Max concurrent generations: {{ llm_max_concurrency }}"
+
+- name: Monitoring
+  hosts: ai_nodes:turnstone
+  vars_files:
+    - config.yml
+
+  handlers:
+    - name: Restart node_exporter
+      ansible.builtin.systemd_service:
+        name: node_exporter
+        state: restarted
+        daemon_reload: true
+      become: true
+
+    - name: Restart nvidia_gpu_exporter
+      ansible.builtin.systemd_service:
+        name: nvidia_gpu_exporter
+        state: restarted
+        daemon_reload: true
+      become: true
+
+    - name: Restart monitoring stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ monitoring_dir }}"
+        state: restarted
+      become: true
+
+  tasks:
+    - name: Set up metrics exporters.
+      ansible.builtin.include_tasks: tasks/monitoring-exporters.yml
+
+    - name: Set up Prometheus and Grafana.
+      ansible.builtin.include_tasks: tasks/monitoring-dashboard.yml
+      when: inventory_hostname in groups['turnstone']
