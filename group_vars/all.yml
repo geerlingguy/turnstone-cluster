@@ -46,6 +46,7 @@ monitoring_dir: /opt/monitoring
 monitoring_grafana_port: 3000
 monitoring_retention: 30d
 monitoring_scrape_interval: 15s
+monitoring_turnstone_network: turnstone_turnstone-net
 monitoring_hosts: "{{ groups['ai_nodes'] + (groups['turnstone'] | difference(groups['ai_nodes'])) }}"
 monitoring_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 monitoring_prometheus_image: prom/prometheus:v3.15.1

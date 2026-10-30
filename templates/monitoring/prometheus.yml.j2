@@ -53,3 +53,15 @@ scrape_configs:
 {%     endif %}
 {%   endif %}
 {% endfor %}
+
+  # Turnstone itself: workstreams, tools, judge, and tokens for every model,
+  # including cloud models. Reached over Turnstone's Docker network.
+  - job_name: turnstone-node
+    static_configs:
+      - targets:
+{% for n in range(1, turnstone_node_count | int + 1) %}
+          - "node-{{ n }}:8080"
+{% endfor %}
+  - job_name: turnstone-console
+    static_configs:
+      - targets: ["console:8090"]

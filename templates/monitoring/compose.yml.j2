@@ -13,6 +13,9 @@ services:
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
+    networks:
+      - default
+      - turnstone
 
   json-exporter:
     image: {{ monitoring_json_exporter_image }}
@@ -47,3 +50,9 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+
+networks:
+  # Turnstone's own network, so Prometheus can scrape its nodes and console.
+  turnstone:
+    name: {{ monitoring_turnstone_network }}
+    external: true
