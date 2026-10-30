@@ -63,11 +63,11 @@ To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the da
 
 ## Monitoring
 
-Open `http://<turnstone-node-ip>:3000` (the playbook prints the URL) for the **Turnstone Cluster** dashboard. It's read-only and needs no login. It shows cluster-wide totals at the top, then one row per node with CPU, RAM, GPU utilization and power, decode/prefill tokens/s, running/waiting requests, and KV cache usage.
+Open `http://<turnstone-node-ip>:3000` (the playbook prints the URL) for the **Turnstone Cluster** dashboard. It's read-only and needs no login. It shows cluster-wide totals at the top, a **Turnstone** row (workstreams, tool calls, judge calls and latency, and token usage across every model, including cloud models like Claude), then one row per node with CPU, RAM, GPU utilization and power, decode/prefill tokens/s, running/waiting requests, and KV cache usage.
 
 Prometheus recording rules (`files/monitoring/rules.yml`) put vLLM, llama.cpp, and Radiance metrics under the same names (`llm:*`, `gpu:*`, `node:*`), so every node's row looks the same regardless of runtime. Each node's `llm_metrics_type` (`vllm`, `llamacpp`, or `radiance`) tells Prometheus how to scrape it. Radiance's `/stats` JSON is converted by `json_exporter`.
 
-Prometheus itself listens only on `127.0.0.1:9090` on the Turnstone node. To edit dashboards in Grafana, log in as `admin` (set `grafana_admin_password` in `config.yml`). The provisioned dashboard is read-only, so save edits as a copy, or change `files/monitoring/grafana/turnstone-cluster.json`.
+Prometheus itself listens only on `127.0.0.1:9090` on the Turnstone node. To edit dashboards in Grafana, log in as `admin` (set `grafana_admin_password` in `config.yml`). The provisioned dashboard is read-only, so save edits as a copy, or edit `files/monitoring/grafana/generate_dashboard.py` and regenerate `turnstone-cluster.json` with it.
 
 ## License
 
