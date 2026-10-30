@@ -62,6 +62,13 @@ scrape_configs:
 {% for n in range(1, turnstone_node_count | int + 1) %}
           - "node-{{ n }}:8080"
 {% endfor %}
+    metric_relabel_configs:
+      # Turnstone writes histogram buckets without the standard _bucket
+      # suffix; rename them so rate() and histogram_quantile() work cleanly.
+      - source_labels: [__name__, le]
+        regex: "turnstone_judge_llm_latency_seconds;.+"
+        target_label: __name__
+        replacement: turnstone_judge_llm_latency_seconds_bucket
   - job_name: turnstone-console
     static_configs:
       - targets: ["console:8090"]

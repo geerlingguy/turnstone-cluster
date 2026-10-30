@@ -15,7 +15,7 @@ def target(expr, legend="", ref="A", instant=False):
     if instant: t["instant"] = True; t["range"] = False
     return t
 
-def stat(title, exprs, unit, x, y, w=3, h=4, decimals=0, thresholds=None, max_=None):
+def stat(title, exprs, unit, x, y, w=3, h=4, decimals=0, thresholds=None, max_=None, no_value=None):
     steps = thresholds or [{"color": "green", "value": None}]
     p = {"id": nid(), "type": "stat", "title": title, "datasource": DS,
          "gridPos": {"x": x, "y": y, "w": w, "h": h},
@@ -28,6 +28,7 @@ def stat(title, exprs, unit, x, y, w=3, h=4, decimals=0, thresholds=None, max_=N
                      "colorMode": "value", "graphMode": "area", "textMode": "auto",
                      "justifyMode": "auto", "orientation": "auto"}}
     if max_ is not None: p["fieldConfig"]["defaults"]["max"] = max_
+    if no_value is not None: p["fieldConfig"]["defaults"]["noValue"] = no_value
     return p
 
 def ts(title, exprs, unit, x, y, w=12, h=7, max_=None):
@@ -61,7 +62,8 @@ panels += [
 
 # Turnstone itself (scraped from each Turnstone node's and the console's
 # /metrics). Includes cloud models like Claude, which have no server to scrape.
-JUDGE_BUCKETS = '{__name__=~"turnstone_judge_llm_latency_seconds(_bucket)?", le!=""}'
+# Bucket series are renamed to *_bucket at scrape time (see prometheus.yml.j2).
+JUDGE_BUCKETS = "turnstone_judge_llm_latency_seconds_bucket"
 y = 12
 panels.append({"id": nid(), "type": "row", "title": "Turnstone", "collapsed": False,
                "gridPos": {"x": 0, "y": y, "w": 24, "h": 1}, "panels": []})
@@ -73,10 +75,13 @@ panels += [
     stat("Judge calls/min", [('sum(rate(turnstone_judge_verdicts_total{tier="llm"}[5m])) * 60', "")],
          "none", 9, y, decimals=1),
     stat("Judge latency (mean)",
-         [("sum(rate(turnstone_judge_llm_latency_seconds_sum[15m]))"
-           " / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))", "")], "s", 12, y, decimals=1),
+         # "> 0" drops the NaN from 0/0 when there were no judge calls.
+         [("(sum(rate(turnstone_judge_llm_latency_seconds_sum[15m]))"
+           " / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))) > 0", "")], "s", 12, y, decimals=1,
+         no_value="no calls"),
     stat("Judge latency (p50)",
-         [(f"histogram_quantile(0.5, sum by (le) (rate({JUDGE_BUCKETS}[15m])))", "")], "s", 15, y, decimals=1),
+         [(f"histogram_quantile(0.5, sum by (le) (rate({JUDGE_BUCKETS}[15m]))) > 0", "")], "s", 15, y, decimals=1,
+         no_value="no calls"),
     stat("Tokens/min", [('sum(rate(turnstone_tokens_total{type=~"prompt|completion"}[5m])) * 60', "")],
          "short", 18, y),
     stat("Cache read tokens/min", [('sum(rate(turnstone_tokens_total{type="cache_read"}[5m])) * 60', "")],
