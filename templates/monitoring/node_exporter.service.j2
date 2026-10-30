@@ -8,7 +8,10 @@ Wants=network-online.target
 User=exporter
 ExecStart=/usr/local/bin/node_exporter \
   --web.listen-address=:9100 \
-  --collector.drm
+{% for collector in node_exporter_collectors %}
+  --collector.{{ collector }} \
+{% endfor %}
+  --collector.disable-defaults
 Restart=on-failure
 
 [Install]

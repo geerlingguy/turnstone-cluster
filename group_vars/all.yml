@@ -53,6 +53,16 @@ monitoring_grafana_image: grafana/grafana:13.3.0
 monitoring_json_exporter_image: quay.io/prometheuscommunity/json-exporter:v0.8.0
 node_exporter_version: 1.12.1
 nvidia_gpu_exporter_version: 1.16.0
+# Only what the dashboard uses; some default collectors (e.g. filesystem on a
+# stale mount) can hang a scrape.
+node_exporter_collectors:
+  - cpu
+  - meminfo
+  - hwmon
+  - drm
+  - loadavg
+  - netdev
+  - uname
 node_exporter_url: >-
   https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version
   }}/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}.tar.gz
