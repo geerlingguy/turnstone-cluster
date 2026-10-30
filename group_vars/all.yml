@@ -20,6 +20,7 @@ llm_health_path: /health
 llm_supports_api_key: true
 llm_hf_venv: "{{ ansible_facts['user_dir'] }}/.local/share/hf-cli"
 llm_host_dirs: []
+llm_metrics_type: vllm  # vllm, llamacpp, or radiance (for monitoring).
 
 # LLM server in Docker (llm_runtime: docker).
 llm_install_docker: false  # DGX OS ships with Docker.
@@ -39,3 +40,23 @@ llama_cpp_src_dir: "{{ ansible_facts['user_dir'] }}/llama.cpp"
 llm_model_dir: "{{ ansible_facts['user_dir'] }}/models"
 llm_mmproj_file: ""
 llm_ttm_pages: 32505856  # ~124 GiB of 4 KiB pages.
+
+# Monitoring (Prometheus + Grafana on the Turnstone node).
+monitoring_dir: /opt/monitoring
+monitoring_grafana_port: 3000
+monitoring_retention: 30d
+monitoring_scrape_interval: 15s
+monitoring_hosts: "{{ groups['ai_nodes'] + (groups['turnstone'] | difference(groups['ai_nodes'])) }}"
+monitoring_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+monitoring_prometheus_image: prom/prometheus:v3.15.1
+monitoring_grafana_image: grafana/grafana:13.3.0
+monitoring_json_exporter_image: quay.io/prometheuscommunity/json-exporter:v0.8.0
+node_exporter_version: 1.12.1
+nvidia_gpu_exporter_version: 1.16.0
+node_exporter_url: >-
+  https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version
+  }}/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}.tar.gz
+nvidia_gpu_exporter_url: >-
+  https://github.com/utkuozdemir/nvidia_gpu_exporter/releases/download/v{{ nvidia_gpu_exporter_version
+  }}/nvidia_gpu_exporter_{{ nvidia_gpu_exporter_version }}_linux_{{ 'arm64' if monitoring_arch == 'arm64' else 'x86_64' }}.tar.gz
+grafana_admin_password: ""

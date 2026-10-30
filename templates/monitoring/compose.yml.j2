@@ -1,0 +1,49 @@
+# {{ ansible_managed }}
+services:
+  prometheus:
+    image: {{ monitoring_prometheus_image }}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time={{ monitoring_retention }}
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  json-exporter:
+    image: {{ monitoring_json_exporter_image }}
+    restart: unless-stopped
+    command:
+      - --config.file=/config.yml
+    volumes:
+      - ./json-exporter.yml:/config.yml:ro
+
+  grafana:
+    image: {{ monitoring_grafana_image }}
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/turnstone-cluster.json
+{% if grafana_admin_password %}
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+{% endif %}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "{{ monitoring_grafana_port }}:3000"
+
+volumes:
+  prometheus-data:
+  grafana-data:

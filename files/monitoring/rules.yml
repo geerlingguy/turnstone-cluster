@@ -1,0 +1,60 @@
+---
+# Normalizes metrics from vLLM, llama.cpp, Radiance, and the NVIDIA/AMD GPU
+# exporters into one set of names, so the dashboard doesn't care which runtime
+# or GPU vendor a node uses. Every series carries a 'node' label.
+groups:
+  - name: turnstone-cluster
+    interval: 15s
+    rules:
+      # Host.
+      - record: node:cpu_used:percent
+        expr: 100 * (1 - avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[1m])))
+      - record: node:memory_used:percent
+        expr: 100 * (1 - max by (node) (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+
+      # GPU utilization (busiest GPU on the node) and total GPU power.
+      - record: gpu:busy:max_percent
+        expr: >-
+          max by (node) (nvidia_smi_utilization_gpu_ratio * 100)
+          or max by (node) (node_drm_gpu_busy_percent)
+      - record: gpu:power:watts
+        expr: >-
+          sum by (node) (nvidia_smi_power_draw_watts)
+          or sum by (node) (
+            {__name__=~"node_hwmon_power_(average_|input_)?watt"}
+            * on (node, chip) group_left
+            node_hwmon_chip_names{chip_name="amdgpu"}
+          )
+
+      # LLM token rates (tokens/s).
+      - record: llm:decode:tokens_per_second
+        expr: >-
+          sum by (node) (rate(vllm:generation_tokens_total[1m]))
+          or sum by (node) (rate(llamacpp:tokens_predicted_total[1m]))
+          or max by (node) (radiance_decode_tps)
+      - record: llm:prefill:tokens_per_second
+        expr: >-
+          sum by (node) (rate(vllm:prompt_tokens_total[1m]))
+          or sum by (node) (rate(llamacpp:prompt_tokens_total[1m]))
+          or max by (node) (radiance_prefill_tps)
+
+      # LLM requests.
+      - record: llm:requests_running
+        expr: >-
+          sum by (node) (vllm:num_requests_running)
+          or sum by (node) (llamacpp:requests_processing)
+          or max by (node) (radiance_running)
+      - record: llm:requests_waiting
+        expr: >-
+          sum by (node) (vllm:num_requests_waiting)
+          or sum by (node) (llamacpp:requests_deferred)
+          or max by (node) (radiance_waiting)
+
+      # KV cache in use (0-100).
+      - record: llm:kv_cache_used:percent
+        expr: >-
+          100 * (
+            max by (node) (vllm:kv_cache_usage_perc or vllm:gpu_cache_usage_perc)
+            or max by (node) (llamacpp:kv_cache_usage_ratio)
+            or max by (node) (radiance_kv_util)
+          )

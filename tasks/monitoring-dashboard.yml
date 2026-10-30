@@ -1,0 +1,75 @@
+---
+# Prometheus, Grafana, and json_exporter (for Radiance's /stats) on the
+# Turnstone node, via Docker Compose.
+
+# Prometheus scrapes by IP (containers can't resolve .local names), so make
+# sure every host's network facts are available, even with --limit.
+- name: Gather network facts for every monitored host.
+  ansible.builtin.setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - network
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ monitoring_hosts }}"
+  when: hostvars[item]['ansible_facts']['default_ipv4'] is not defined
+
+- name: Ensure monitoring directories exist.
+  ansible.builtin.file:
+    path: "{{ monitoring_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - ""
+    - grafana/provisioning/datasources
+    - grafana/provisioning/dashboards
+    - grafana/dashboards
+  become: true
+
+- name: Configure Prometheus scrape targets.
+  ansible.builtin.template:
+    src: templates/monitoring/prometheus.yml.j2
+    dest: "{{ monitoring_dir }}/prometheus.yml"
+    mode: "0644"
+  become: true
+  notify: Restart monitoring stack
+
+- name: Copy monitoring config files.
+  ansible.builtin.copy:
+    src: "files/monitoring/{{ item.src }}"
+    dest: "{{ monitoring_dir }}/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: rules.yml, dest: rules.yml }
+    - { src: json-exporter.yml, dest: json-exporter.yml }
+    - { src: grafana/datasource.yml, dest: grafana/provisioning/datasources/prometheus.yml }
+    - { src: grafana/dashboards.yml, dest: grafana/provisioning/dashboards/turnstone-cluster.yml }
+  become: true
+  notify: Restart monitoring stack
+
+# Grafana picks up dashboard changes on its own; no restart needed.
+- name: Copy the Grafana dashboard.
+  ansible.builtin.copy:
+    src: files/monitoring/grafana/turnstone-cluster.json
+    dest: "{{ monitoring_dir }}/grafana/dashboards/turnstone-cluster.json"
+    mode: "0644"
+  become: true
+
+- name: Configure the monitoring stack.
+  ansible.builtin.template:
+    src: templates/monitoring/compose.yml.j2
+    dest: "{{ monitoring_dir }}/compose.yml"
+    mode: "0600"
+  become: true
+
+- name: Start the monitoring stack.
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dir }}"
+    pull: missing
+    state: present
+  become: true
+
+- name: Print the dashboard URL.
+  ansible.builtin.debug:
+    msg: "Grafana: http://{{ ansible_facts['default_ipv4']['address'] | default(inventory_hostname) }}:{{ monitoring_grafana_port }}"

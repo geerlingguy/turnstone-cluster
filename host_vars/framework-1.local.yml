@@ -1,6 +1,8 @@
 ---
 # Qwen3.8 Flash-Next (GGUF) on AMD Strix Halo via llama.cpp + Vulkan (RADV).
 llm_runtime: llama-cpp
+llm_metrics_type: llamacpp
+llm_gpu_vendor: amd
 llm_model_name: qwen3.8-flash-next-fw
 llm_max_concurrency: 2  # Matches --parallel below.
 

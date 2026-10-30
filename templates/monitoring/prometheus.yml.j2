@@ -1,0 +1,55 @@
+# {{ ansible_managed }}
+global:
+  scrape_interval: {{ monitoring_scrape_interval }}
+  evaluation_interval: {{ monitoring_scrape_interval }}
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+{% for host in monitoring_hosts %}
+{%   set h = hostvars[host] %}
+{%   set ip = h['ansible_facts']['default_ipv4']['address'] | default(host) %}
+{%   set node = host.split('.')[0] %}
+  # {{ host }}
+  - job_name: node-{{ node }}
+    static_configs:
+      - targets: ["{{ ip }}:9100"]
+        labels:
+          node: {{ node }}
+{%   if h['llm_gpu_vendor'] | default('nvidia') == 'nvidia' %}
+  - job_name: gpu-{{ node }}
+    static_configs:
+      - targets: ["{{ ip }}:9835"]
+        labels:
+          node: {{ node }}
+{%   endif %}
+{%   if host in groups['ai_nodes'] %}
+{%     set port = h['llm_port'] | default(8000) %}
+{%     if h['llm_metrics_type'] == 'radiance' %}
+  - job_name: llm-{{ node }}
+    metrics_path: /probe
+    params:
+      module: [radiance]
+    static_configs:
+      - targets: ["http://{{ ip }}:{{ port }}/stats"]
+        labels:
+          node: {{ node }}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: json-exporter:7979
+{%     else %}
+  - job_name: llm-{{ node }}
+    static_configs:
+      - targets: ["{{ ip }}:{{ port }}"]
+        labels:
+          node: {{ node }}
+{%       if llm_api_key and h['llm_supports_api_key'] | default(true) %}
+    authorization:
+      credentials: "{{ llm_api_key }}"
+{%       endif %}
+{%     endif %}
+{%   endif %}
+{% endfor %}

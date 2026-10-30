@@ -14,3 +14,7 @@ llm_allowed_network: 10.0.2.0/24
 
 # Turnstone release to check out (https://github.com/turnstonelabs/turnstone/releases).
 turnstone_version: v1.9.1
+
+# Grafana admin password (the dashboard itself is viewable without logging in).
+# Leave empty to use Grafana's default (admin/admin, changed at first login).
+grafana_admin_password: ""

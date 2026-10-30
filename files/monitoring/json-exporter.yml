@@ -1,0 +1,29 @@
+---
+# Turns Radiance's /stats JSON into Prometheus metrics.
+modules:
+  radiance:
+    metrics:
+      - name: radiance_decode_tps
+        help: Decode tokens per second.
+        path: "{ .decode_tps }"
+      - name: radiance_prefill_tps
+        help: Prefill tokens per second.
+        path: "{ .prefill_tps }"
+      - name: radiance_running
+        help: Requests running.
+        path: "{ .running }"
+      - name: radiance_waiting
+        help: Requests waiting.
+        path: "{ .waiting }"
+      - name: radiance_kv_util
+        help: KV cache utilization (0-1).
+        path: "{ .kv_util }"
+      - name: radiance_draft_accept
+        help: Speculative draft acceptance rate (0-1).
+        path: "{ .draft_accept }"
+      - name: radiance_prefix_hit_rate
+        help: Prefix cache hit rate (0-1).
+        path: "{ .prefix_hit_rate }"
+      - name: radiance_step_ns_decode_recent
+        help: Recent decode step time in nanoseconds.
+        path: "{ .step_ns_decode_recent }"
