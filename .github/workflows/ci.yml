@@ -16,18 +16,15 @@ jobs:
 
     steps:
       - name: Check out the codebase.
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Install Ansible and ansible-lint.
         run: pip3 install ansible ansible-lint
-
-      - name: Install Ansible collections.
-        run: ansible-galaxy collection install -r requirements.yml
 
       - name: Use example inventory and config.
         run: |
