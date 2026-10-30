@@ -584,7 +584,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(turnstone_judge_llm_latency_seconds_sum[15m])) / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))",
+          "expr": "(sum(rate(turnstone_judge_llm_latency_seconds_sum[15m])) / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))) > 0",
           "legendFormat": "",
           "refId": "A"
         }
@@ -605,7 +605,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "noValue": "no calls"
         },
         "overrides": []
       },
@@ -644,7 +645,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (rate({__name__=~\"turnstone_judge_llm_latency_seconds(_bucket)?\", le!=\"\"}[15m])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(turnstone_judge_llm_latency_seconds_bucket[15m]))) > 0",
           "legendFormat": "",
           "refId": "A"
         }
@@ -665,7 +666,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "noValue": "no calls"
         },
         "overrides": []
       },
@@ -883,7 +885,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (rate({__name__=~\"turnstone_judge_llm_latency_seconds(_bucket)?\", le!=\"\"}[5m])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(turnstone_judge_llm_latency_seconds_bucket[5m])))",
           "legendFormat": "p50",
           "refId": "B"
         },
@@ -892,7 +894,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=~\"turnstone_judge_llm_latency_seconds(_bucket)?\", le!=\"\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(turnstone_judge_llm_latency_seconds_bucket[5m])))",
           "legendFormat": "p95",
           "refId": "C"
         }
