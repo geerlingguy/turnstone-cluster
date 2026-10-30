@@ -50,7 +50,7 @@ llm_container_command:
   # Clients sending reasoning_effort=high get a 400 without this.
   - --reasoning-effort-map
   - high=xhigh
-  - --prefix-cache-host-mib
+  - --prefix-cache-mib
   - "8192"
   - --prefix-cache-dir
   - /prefix-cache
