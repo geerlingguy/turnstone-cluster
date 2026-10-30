@@ -1,12 +1,23 @@
 ---
 # Downloads model weights from Hugging Face, for runtimes that don't download
 # their own (llama.cpp, Radiance). Skipped once the model file exists.
+
+# Checked up front: an async task with 'creates' still waits a full poll
+# interval before reporting that it had nothing to do.
+- name: Check whether the model is already downloaded.
+  ansible.builtin.stat:
+    path: "{{ llm_model_dir }}/{{ llm_model_file }}"
+    get_checksum: false
+  register: llm_model_stat
+
 - name: Ensure Python venv support is installed (Debian/Ubuntu).
   ansible.builtin.apt:
     name: python3-venv
     state: present
   become: true
-  when: ansible_facts['os_family'] == 'Debian'
+  when:
+    - not llm_model_stat.stat.exists
+    - ansible_facts['os_family'] == 'Debian'
 
 - name: Ensure the Hugging Face CLI is installed.
   ansible.builtin.pip:
@@ -14,6 +25,7 @@
     virtualenv: "{{ llm_hf_venv }}"
     virtualenv_command: python3 -m venv
     state: present
+  when: not llm_model_stat.stat.exists
 
 - name: Download the model (this can take a long time).
   ansible.builtin.command:
@@ -26,3 +38,4 @@
     HF_TOKEN: "{{ hf_token | default('', true) }}"
   async: 28800
   poll: 30
+  when: not llm_model_stat.stat.exists
