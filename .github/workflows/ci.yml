@@ -32,6 +32,11 @@ jobs:
           cp example.config.yml config.yml
 
       - name: Run ansible-lint.
+        shell: bash {0}
         run: |
-          python3 --version; ansible --version | head -1; ansible-lint --version
-          ansible-lint > lint.log 2>&1 || { rc=$?; tail -40 lint.log | while IFS= read -r l; do echo "::warning::$l"; done; exit $rc; }
+          for c in "python3 --version" "ansible --version" "ansible-lint --version" "ansible-lint"; do
+            $c > out.log 2>&1; rc=$?
+            echo "::warning::[$c] rc=$rc"
+            tail -25 out.log | while IFS= read -r l; do echo "::warning::$l"; done
+          done
+          exit 1
