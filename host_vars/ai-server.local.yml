@@ -1,0 +1,60 @@
+---
+# Qwen3.8 27B (FP8) on 2x AMD Radeon AI PRO R9700 via Radiance (tensor
+# parallel), following Wendell's Level1Techs guide:
+# https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789
+#
+# The 27B fits entirely in VRAM. Flash-Next needs ~60 GiB of system RAM on
+# 2x R9700, too tight with 64 GB.
+llm_runtime: docker
+llm_gpu_vendor: amd
+llm_install_docker: true
+llm_model_name: qwen3.8-27b-r9700
+llm_max_concurrency: 8  # Matches --max-num-seqs below.
+llm_health_path: /v1/models
+llm_supports_api_key: false  # Not documented for Radiance.
+
+llm_hf_repo: StillDeadcode/qwen3.8-27b-fp8
+llm_hf_include:
+  - qwen3.8-27b-fp8.rad
+llm_model_dir: "{{ ansible_facts['user_dir'] }}/models/radiance"
+llm_model_file: qwen3.8-27b-fp8.rad
+llm_prefix_cache_dir: "{{ ansible_facts['user_dir'] }}/radiance-cache"
+llm_host_dirs:
+  - "{{ llm_prefix_cache_dir }}"
+
+llm_container_name: radiance
+llm_container_image: stilldeadcode/radiance:latest
+llm_shm_size: 32g
+llm_container_env:
+  HIP_VISIBLE_DEVICES: "0,1"
+llm_container_volumes:
+  - "{{ llm_model_dir }}/{{ llm_model_file }}:/model.rad:ro"
+  - "{{ llm_prefix_cache_dir }}:/prefix-cache"
+llm_container_command:
+  - --model
+  - /model.rad
+  - --tp
+  - "2"
+  - --tp-wire
+  - wht6
+  - --max-model-len
+  - "262144"
+  - --max-num-seqs
+  - "8"
+  - --kv-cache-dtype
+  - fp8
+  - --gpu-headroom-mib
+  - "96"
+  - --num-speculative-tokens
+  - "7"
+  # Clients sending reasoning_effort=high get a 400 without this.
+  - --reasoning-effort-map
+  - high=xhigh
+  - --prefix-cache-host-mib
+  - "8192"
+  - --prefix-cache-dir
+  - /prefix-cache
+  - --host
+  - 0.0.0.0
+  - --port
+  - "{{ llm_container_port }}"

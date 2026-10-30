@@ -1,5 +1,44 @@
 ---
-# vLLM in Docker, for the NVIDIA GB10s (DGX OS).
+# LLM server in Docker: vLLM on the NVIDIA GB10s (DGX OS), Radiance on the
+# AMD R9700 server (Ubuntu).
+- name: Ensure Docker is installed.
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+    state: present
+  become: true
+  when: llm_install_docker | bool
+
+- name: Ensure Docker is running and enabled at boot.
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true
+  become: true
+  when: llm_install_docker | bool
+
+- name: Add the user to the docker and GPU groups.
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    groups: "{{ ['docker'] + (['render', 'video'] if llm_gpu_vendor == 'amd' else []) }}"
+    append: true
+  become: true
+  when: llm_install_docker | bool
+
+# Containers don't have the host's group names, so pass GIDs instead.
+- name: Look up GPU group IDs.
+  ansible.builtin.getent:
+    database: group
+  when: llm_gpu_vendor == 'amd'
+
+- name: Ensure LLM directories exist.
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ llm_host_dirs }}"
+
 - name: Ensure the LLM compose directory exists.
   ansible.builtin.file:
     path: "{{ llm_docker_dir }}"
@@ -7,14 +46,14 @@
     mode: "0755"
   become: true
 
-- name: Configure the vLLM container.
+- name: Configure the LLM container.
   ansible.builtin.template:
     src: templates/llm-compose.yml.j2
     dest: "{{ llm_docker_dir }}/compose.yml"
     mode: "0600"
   become: true
 
-- name: Start the vLLM container.
+- name: Start the LLM container.
   community.docker.docker_compose_v2:
     project_src: "{{ llm_docker_dir }}"
     pull: missing

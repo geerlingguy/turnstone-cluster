@@ -16,9 +16,16 @@ llm_max_concurrency: 0
 llm_wait_for_health: true
 llm_health_timeout_minutes: 60
 llm_allowed_network: 10.0.2.0/24
+llm_health_path: /health
+llm_supports_api_key: true
+llm_hf_venv: "{{ ansible_facts['user_dir'] }}/.local/share/hf-cli"
+llm_host_dirs: []
 
-# vLLM in Docker (llm_runtime: docker).
+# LLM server in Docker (llm_runtime: docker).
+llm_install_docker: false  # DGX OS ships with Docker.
+llm_gpu_vendor: nvidia  # nvidia or amd.
 llm_docker_dir: /opt/llm
+llm_shm_size: ""
 llm_container_name: vllm
 llm_container_port: 8000
 llm_container_env: {}

@@ -97,22 +97,36 @@
       become: true
 
   tasks:
+    - name: Download model weights.
+      ansible.builtin.include_tasks: tasks/model-download.yml
+      when: llm_hf_repo is defined
+
     - name: Set up the LLM server for this node.
       ansible.builtin.include_tasks: "tasks/llm-{{ llm_runtime }}.yml"
 
     - name: Wait for the LLM server to be healthy (first start can take 30+ min).
       ansible.builtin.uri:
-        url: "http://localhost:{{ llm_port }}/health"
+        url: "http://localhost:{{ llm_port }}{{ llm_health_path }}"
+        headers: "{{ {'Authorization': 'Bearer ' ~ llm_api_key} if llm_api_key else {} }}"
       register: llm_health
       until: llm_health.status == 200
       retries: "{{ (llm_health_timeout_minutes * 4) | int }}"
       delay: 15
       when: llm_wait_for_health | bool
 
+    - name: Get the model ID the server reports.
+      ansible.builtin.uri:
+        url: "http://localhost:{{ llm_port }}/v1/models"
+        headers: "{{ {'Authorization': 'Bearer ' ~ llm_api_key} if llm_api_key else {} }}"
+      register: llm_models
+      failed_when: false
+      no_log: "{{ llm_api_key | length > 0 }}"
+
     - name: Print the Turnstone model settings for this node.
       ansible.builtin.debug:
         msg:
-          - "Alias / Model ID: {{ llm_model_name }}"
+          - "Alias: {{ llm_model_name }}"
+          - "Model ID: {{ llm_models.json.data[0].id | default('unknown - check /v1/models') }}"
           # Turnstone's containers can't resolve mDNS (.local) names, so use the IP.
           - "Base URL: http://{{ ansible_facts['default_ipv4']['address'] | default(inventory_hostname) }}:{{ llm_port }}/v1"
           - "API key: {{ 'see config.yml (llm_api_key)' if llm_api_key else 'none' }}"

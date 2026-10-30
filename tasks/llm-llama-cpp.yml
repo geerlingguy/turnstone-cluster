@@ -83,24 +83,6 @@
     mode: "0644"
   become: true
 
-- name: Ensure the Hugging Face CLI is installed.
-  ansible.builtin.pip:
-    name: huggingface_hub
-    extra_args: --user
-    state: present
-
-- name: Download the model (this can take a long time).
-  ansible.builtin.command:
-    cmd: >-
-      {{ ansible_facts['user_dir'] }}/.local/bin/hf download {{ llm_hf_repo }}
-      {% for pattern in llm_hf_include %}--include {{ pattern | quote }} {% endfor %}
-      --local-dir {{ llm_model_dir }}
-    creates: "{{ llm_model_dir }}/{{ llm_model_file }}"
-  environment:
-    HF_TOKEN: "{{ hf_token | default('', true) }}"
-  async: 28800
-  poll: 30
-
 - name: Configure llama-server environment.
   ansible.builtin.copy:
     dest: /etc/llama-server.env

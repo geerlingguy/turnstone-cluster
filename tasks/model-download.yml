@@ -1,0 +1,28 @@
+---
+# Downloads model weights from Hugging Face, for runtimes that don't download
+# their own (llama.cpp, Radiance). Skipped once the model file exists.
+- name: Ensure Python venv support is installed (Debian/Ubuntu).
+  ansible.builtin.apt:
+    name: python3-venv
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Ensure the Hugging Face CLI is installed.
+  ansible.builtin.pip:
+    name: huggingface_hub
+    virtualenv: "{{ llm_hf_venv }}"
+    virtualenv_command: python3 -m venv
+    state: present
+
+- name: Download the model (this can take a long time).
+  ansible.builtin.command:
+    cmd: >-
+      {{ llm_hf_venv }}/bin/hf download {{ llm_hf_repo }}
+      {% for pattern in llm_hf_include %}--include {{ pattern | quote }} {% endfor %}
+      --local-dir {{ llm_model_dir }}
+    creates: "{{ llm_model_dir }}/{{ llm_model_file }}"
+  environment:
+    HF_TOKEN: "{{ hf_token | default('', true) }}"
+  async: 28800
+  poll: 30
