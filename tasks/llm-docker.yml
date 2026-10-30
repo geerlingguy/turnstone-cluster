@@ -7,24 +7,6 @@
     mode: "0755"
   become: true
 
-- name: Check for a vllm container created outside of Compose.
-  ansible.builtin.command: >-
-    docker inspect --format
-    '{% raw %}{{ index .Config.Labels "com.docker.compose.project" }}{% endraw %}'
-    {{ llm_container_name }}
-  register: llm_existing_container
-  failed_when: false
-  changed_when: false
-  become: true
-
-- name: Remove the hand-made container so Compose can manage it.
-  ansible.builtin.command: "docker rm -f {{ llm_container_name }}"
-  when:
-    - llm_existing_container.rc == 0
-    - llm_existing_container.stdout | trim == ''
-  changed_when: true
-  become: true
-
 - name: Configure the vLLM container.
   ansible.builtin.template:
     src: templates/llm-compose.yml.j2
