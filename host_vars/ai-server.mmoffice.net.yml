@@ -18,9 +18,6 @@ llm_hf_include:
   - qwen3.8-27b-fp8.rad
 llm_model_dir: "{{ ansible_facts['user_dir'] }}/models/radiance"
 llm_model_file: qwen3.8-27b-fp8.rad
-llm_prefix_cache_dir: "{{ ansible_facts['user_dir'] }}/radiance-cache"
-llm_host_dirs:
-  - "{{ llm_prefix_cache_dir }}"
 
 llm_container_name: radiance
 llm_container_image: stilldeadcode/radiance:latest
@@ -29,7 +26,6 @@ llm_container_env:
   HIP_VISIBLE_DEVICES: "0,1"
 llm_container_volumes:
   - "{{ llm_model_dir }}/{{ llm_model_file }}:/model.rad:ro"
-  - "{{ llm_prefix_cache_dir }}:/prefix-cache"
 llm_container_command:
   - --model
   - /model.rad
@@ -50,10 +46,9 @@ llm_container_command:
   # Clients sending reasoning_effort=high get a 400 without this.
   - --reasoning-effort-map
   - high=xhigh
+  # Prefix cache lives in VRAM + host memory only.
   - --prefix-cache-mib
   - "8192"
-  - --prefix-cache-dir
-  - /prefix-cache
   - --host
   - 0.0.0.0
   - --port
