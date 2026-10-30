@@ -9,6 +9,7 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 | `dell-gb10-1.local` | Dell GB10 (DGX OS) | Turnstone + LLM | `qwen3.8-27b` (judge, vision) | vLLM (Docker) |
 | `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (main coding model) | vLLM (Docker) |
 | `framework-1.local` | Framework Desktop, Ryzen AI Max+ 395, 128 GB (Fedora) | LLM | `qwen3.8-flash-next-fw` (task agent) | llama.cpp (Vulkan) |
+| `ai-server.local` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | LLM | `qwen3.8-27b-r9700` | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
 
 The playbook (`main.yml`) has two plays:
 
@@ -21,6 +22,7 @@ The playbook (`main.yml`) has two plays:
   2. Install an OS on each node:
      - **GB10s**: DGX OS, fully updated (`sudo apt update && sudo apt dist-upgrade`, then `sudo fwupdmgr upgrade`).
      - **Framework Desktop**: Fedora (stable, not Rawhide; check with `dnf repolist`). In the BIOS, set the UMA / dedicated VRAM size to the minimum (512 MB).
+     - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
   3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges.
   4. Clone this repository and install the required collections:
 

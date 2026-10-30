@@ -5,6 +5,9 @@ services:
     container_name: {{ llm_container_name }}
     restart: unless-stopped
     ipc: host
+{% if llm_shm_size %}
+    shm_size: {{ llm_shm_size }}
+{% endif %}
     ulimits:
       memlock: -1
     ports:
@@ -21,13 +24,25 @@ services:
       {{ key }}: "{{ value }}"
 {% endfor %}
 {% endif %}
-{% set command = llm_container_command + (['--api-key', llm_api_key] if llm_api_key else []) %}
+{% set command = llm_container_command + (['--api-key', llm_api_key] if (llm_api_key and llm_supports_api_key) else []) %}
 {% if command %}
     command:
 {% for arg in command %}
       - "{{ arg }}"
 {% endfor %}
 {% endif %}
+{% if llm_gpu_vendor == 'amd' %}
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - "{{ ansible_facts['getent_group']['render'][1] }}"
+      - "{{ ansible_facts['getent_group']['video'][1] }}"
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - SYS_PTRACE
+{% else %}
     deploy:
       resources:
         reservations:
@@ -35,6 +50,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+{% endif %}
 {% if llm_named_volumes %}
 
 # Named volumes keep their plain names, so existing model caches are reused.
