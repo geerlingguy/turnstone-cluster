@@ -113,6 +113,7 @@
       ansible.builtin.debug:
         msg:
           - "Alias / Model ID: {{ llm_model_name }}"
-          - "Base URL: http://{{ ansible_host | default(inventory_hostname) }}:{{ llm_port }}/v1"
+          # Turnstone's containers can't resolve mDNS (.local) names, so use the IP.
+          - "Base URL: http://{{ ansible_facts['default_ipv4']['address'] | default(inventory_hostname) }}:{{ llm_port }}/v1"
           - "API key: {{ 'see config.yml (llm_api_key)' if llm_api_key else 'none' }}"
           - "Max concurrent generations: {{ llm_max_concurrency }}"
