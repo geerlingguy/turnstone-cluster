@@ -1,0 +1,20 @@
+---
+# Qwen3.8 Flash-Next (125B MoE, NVFP4) - main coding model.
+# Image: upstream vllm/vllm-openai:qwen38-flash-next plus GB10 kernel fixes.
+llm_runtime: docker
+llm_model_name: qwen3.8-flash-next
+llm_container_image: krisbailey/qwen3.8-flash-next-nvfp4-dgx-spark:latest
+llm_container_env:
+  SERVED_MODEL_NAME: "{{ llm_model_name }}"
+# Mount all of /root/.cache so kernel autotuning results persist too.
+llm_container_volumes:
+  - qwen-cache:/root/.cache
+llm_named_volumes:
+  - qwen-cache
+# Extra args are appended to the image's own vllm serve command.
+llm_container_command:
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - qwen3_coder
+  - --reasoning-parser
+  - qwen3

@@ -1,0 +1,46 @@
+# {{ ansible_managed }}
+services:
+  {{ llm_container_name }}:
+    image: {{ llm_container_image }}
+    container_name: {{ llm_container_name }}
+    restart: unless-stopped
+    ipc: host
+    ulimits:
+      memlock: -1
+    ports:
+      - "{{ llm_port }}:{{ llm_container_port }}"
+{% if llm_container_volumes %}
+    volumes:
+{% for volume in llm_container_volumes %}
+      - "{{ volume }}"
+{% endfor %}
+{% endif %}
+{% if llm_container_env %}
+    environment:
+{% for key, value in llm_container_env.items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
+{% endif %}
+{% set command = llm_container_command + (['--api-key', llm_api_key] if llm_api_key else []) %}
+{% if command %}
+    command:
+{% for arg in command %}
+      - "{{ arg }}"
+{% endfor %}
+{% endif %}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+{% if llm_named_volumes %}
+
+# Named volumes keep their plain names, so existing model caches are reused.
+volumes:
+{% for volume in llm_named_volumes %}
+  {{ volume }}:
+    name: {{ volume }}
+{% endfor %}
+{% endif %}

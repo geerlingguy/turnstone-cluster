@@ -1,0 +1,16 @@
+---
+# Copy to config.yml (which is ignored by git) and adjust as needed.
+# Defaults for everything else are in group_vars/all.yml.
+
+# Optional shared API key for every LLM server. If set, also enter it as the
+# API key for each model in Turnstone. Generate one with: openssl rand -hex 24
+llm_api_key: ""
+
+# Optional Hugging Face token, for faster and higher-limit model downloads.
+hf_token: ""
+
+# Only this network can reach the llama.cpp server (firewalld on Fedora).
+llm_allowed_network: 10.0.2.0/24
+
+# Turnstone release to check out (https://github.com/turnstonelabs/turnstone/releases).
+turnstone_version: v1.9.1

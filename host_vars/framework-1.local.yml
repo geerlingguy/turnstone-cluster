@@ -1,0 +1,22 @@
+---
+# Qwen3.8 Flash-Next (GGUF) on AMD Strix Halo via llama.cpp + Vulkan (RADV).
+llm_runtime: llama-cpp
+llm_model_name: qwen3.8-flash-next-fw
+llm_max_concurrency: 2  # Matches --parallel below.
+
+llm_hf_repo: unsloth/Qwen3.8-Flash-Next-GGUF
+llm_hf_include:
+  - "UD-IQ4_XS/*"
+  - mmproj-F16.gguf
+llm_model_dir: "{{ ansible_facts['user_dir'] }}/models/flash-next"
+llm_model_file: UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf
+llm_mmproj_file: mmproj-F16.gguf
+
+llama_cpp_server_args:
+  - -ngl 999
+  - -fa on
+  - -fit off
+  - -c 131072
+  - --parallel 2
+  - --jinja
+  - --reasoning-format deepseek

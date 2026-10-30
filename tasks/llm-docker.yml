@@ -1,0 +1,40 @@
+---
+# vLLM in Docker, for the NVIDIA GB10s (DGX OS).
+- name: Ensure the LLM compose directory exists.
+  ansible.builtin.file:
+    path: "{{ llm_docker_dir }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Check for a vllm container created outside of Compose.
+  ansible.builtin.command: >-
+    docker inspect --format
+    '{% raw %}{{ index .Config.Labels "com.docker.compose.project" }}{% endraw %}'
+    {{ llm_container_name }}
+  register: llm_existing_container
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove the hand-made container so Compose can manage it.
+  ansible.builtin.command: "docker rm -f {{ llm_container_name }}"
+  when:
+    - llm_existing_container.rc == 0
+    - llm_existing_container.stdout | trim == ''
+  changed_when: true
+  become: true
+
+- name: Configure the vLLM container.
+  ansible.builtin.template:
+    src: templates/llm-compose.yml.j2
+    dest: "{{ llm_docker_dir }}/compose.yml"
+    mode: "0600"
+  become: true
+
+- name: Start the vLLM container.
+  community.docker.docker_compose_v2:
+    project_src: "{{ llm_docker_dir }}"
+    pull: missing
+    state: present
+  become: true

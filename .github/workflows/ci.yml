@@ -1,0 +1,35 @@
+---
+name: CI
+
+'on':
+  pull_request:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install Ansible and ansible-lint.
+        run: pip3 install ansible ansible-lint
+
+      - name: Use example inventory and config.
+        run: |
+          cp example.hosts.ini hosts.ini
+          cp example.config.yml config.yml
+
+      - name: Run ansible-lint.
+        run: ansible-lint

@@ -1,0 +1,144 @@
+---
+# llama.cpp (Vulkan / RADV) built from source, for AMD Strix Halo on Fedora.
+- name: Ensure llama.cpp build dependencies are installed.
+  ansible.builtin.dnf:
+    name:
+      - git
+      - cmake
+      - gcc-c++
+      - ccache
+      - glslc
+      - glslang-devel
+      - spirv-headers-devel
+      - spirv-tools-devel
+      - vulkan-headers
+      - vulkan-loader-devel
+      - vulkan-tools
+      - mesa-vulkan-drivers
+      - libcurl-devel
+      - python3-pip
+      - policycoreutils
+    state: present
+  become: true
+
+# Lets the iGPU address ~124 GiB of the 128 GB unified memory. Set the BIOS
+# UMA / dedicated VRAM size to its minimum (512 MB) separately.
+- name: Check GPU memory kernel arguments.
+  ansible.builtin.command: grubby --info=DEFAULT
+  register: llm_grubby
+  changed_when: false
+  become: true
+
+- name: Set GPU memory kernel arguments.
+  ansible.builtin.command: >-
+    grubby --update-kernel=ALL
+    --args="ttm.pages_limit={{ llm_ttm_pages }} ttm.page_pool_size={{ llm_ttm_pages }}"
+  when: ("ttm.pages_limit=" ~ llm_ttm_pages) not in llm_grubby.stdout
+  changed_when: true
+  become: true
+  notify: Reboot
+
+- name: Reboot now if kernel arguments changed.
+  ansible.builtin.meta: flush_handlers
+
+- name: Check out llama.cpp.
+  ansible.builtin.git:
+    repo: https://github.com/ggml-org/llama.cpp.git
+    dest: "{{ llama_cpp_src_dir }}"
+    version: "{{ llama_cpp_version }}"
+    depth: 1
+  register: llama_cpp_git
+
+- name: Check whether llama-server is installed.
+  ansible.builtin.stat:
+    path: /usr/local/bin/llama-server
+  register: llama_cpp_binary
+
+- name: Build llama-server (Vulkan, static).
+  ansible.builtin.shell: |
+    set -e
+    cmake -B build -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
+    cmake --build build -j --target llama-server
+  args:
+    chdir: "{{ llama_cpp_src_dir }}"
+    executable: /bin/bash
+  when: llama_cpp_git is changed or not llama_cpp_binary.stat.exists
+  changed_when: true
+
+# SELinux won't let systemd run binaries from a home directory.
+- name: Install llama-server.
+  ansible.builtin.copy:
+    src: "{{ llama_cpp_src_dir }}/build/bin/llama-server"
+    dest: /usr/local/bin/llama-server
+    remote_src: true
+    mode: "0755"
+    setype: bin_t
+  become: true
+  notify: Restart llama-server
+
+- name: Record the llama.cpp version that was built.
+  ansible.builtin.copy:
+    content: "{{ llama_cpp_git.after }}\n"
+    dest: /usr/local/share/llama-server.commit
+    mode: "0644"
+  become: true
+
+- name: Ensure the Hugging Face CLI is installed.
+  ansible.builtin.pip:
+    name: huggingface_hub
+    extra_args: --user
+    state: present
+
+- name: Download the model (this can take a long time).
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin/hf download {{ llm_hf_repo }}
+      {% for pattern in llm_hf_include %}--include {{ pattern | quote }} {% endfor %}
+      --local-dir {{ llm_model_dir }}
+    creates: "{{ llm_model_dir }}/{{ llm_model_file }}"
+  environment:
+    HF_TOKEN: "{{ hf_token | default('', true) }}"
+  async: 28800
+  poll: 30
+
+- name: Configure llama-server environment.
+  ansible.builtin.copy:
+    dest: /etc/llama-server.env
+    content: |
+      GGML_VK_VISIBLE_DEVICES=0
+      {% if llm_api_key %}
+      LLAMA_API_KEY={{ llm_api_key }}
+      {% endif %}
+    mode: "0600"
+  become: true
+  no_log: true
+  notify: Restart llama-server
+
+- name: Configure the llama-server service.
+  ansible.builtin.template:
+    src: templates/llama-server.service.j2
+    dest: /etc/systemd/system/llama-server.service
+    mode: "0644"
+  become: true
+  notify: Restart llama-server
+
+- name: Ensure llama-server is running and enabled at boot.
+  ansible.builtin.systemd_service:
+    name: llama-server
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+
+- name: Allow LAN access to llama-server.
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family=ipv4 source address={{ llm_allowed_network }}
+      port port={{ llm_port }} protocol=tcp accept
+    permanent: true
+    immediate: true
+    state: enabled
+  become: true
+
+- name: Run any pending llama-server restart before health checks.
+  ansible.builtin.meta: flush_handlers
