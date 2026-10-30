@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+# Nodes above node-{{ turnstone_node_count }} use the 'extra' profile.
+# docker compose --profile extra up -d  # start all 10
+{% if turnstone_node_count | int < 10 %}
+services:
+{% for n in range(turnstone_node_count | int + 1, 11) %}
+  node-{{ n }}:
+    profiles: ["extra"]
+{% endfor %}
+{% else %}
+services: {}
+{% endif %}

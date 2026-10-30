@@ -1,14 +1,66 @@
 # Turnstone Cluster
 
+[![CI](https://github.com/geerlingguy/turnstone-cluster/actions/workflows/ci.yml/badge.svg)](https://github.com/geerlingguy/turnstone-cluster/actions/workflows/ci.yml)
+
 A local AI cluster configuration to run [Turnstone](https://github.com/turnstonelabs/turnstone) on an assortment of computers I have in the studio.
+
+| Host | Hardware | Role | Model | Runtime |
+| --- | --- | --- | --- | --- |
+| `dell-gb10-1.local` | Dell GB10 (DGX OS) | Turnstone + LLM | `qwen3.8-27b` (judge, vision) | vLLM (Docker) |
+| `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (main coding model) | vLLM (Docker) |
+| `framework-1.local` | Framework Desktop, Ryzen AI Max+ 395, 128 GB (Fedora) | LLM | `qwen3.8-flash-next-fw` (task agent) | llama.cpp (Vulkan) |
+
+The playbook (`main.yml`) has two plays:
+
+  1. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. The dashboard is served on port 443.
+  2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node. Per-node model settings live in `host_vars/`.
 
 ## Setup
 
-TODO.
+  1. Install Ansible on your computer: `pip3 install ansible`
+  2. Install an OS on each node:
+     - **GB10s**: DGX OS, fully updated (`sudo apt update && sudo apt dist-upgrade`, then `sudo fwupdmgr upgrade`).
+     - **Framework Desktop**: Fedora (stable, not Rawhide; check with `dnf repolist`). In the BIOS, set the UMA / dedicated VRAM size to the minimum (512 MB).
+  3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges.
+  4. Clone this repository and install the required collections:
+
+     ```
+     git clone https://github.com/geerlingguy/turnstone-cluster.git
+     cd turnstone-cluster
+     ansible-galaxy collection install -r requirements.yml
+     ```
+
+  5. Copy the example inventory and config files, then edit them to match your setup:
+
+     ```
+     cp example.hosts.ini hosts.ini
+     cp example.config.yml config.yml
+     ```
+
+  6. (Optional) Adjust the models each node runs in `host_vars/`.
+  7. Make sure Ansible can reach every node: `ansible all -m ping`
+  8. Run the playbook (`-K` prompts for your sudo password):
+
+     ```
+     ansible-playbook main.yml -K
+     ```
+
+     First runs take a long time: the GB10s download models inside their containers, and the Framework builds llama.cpp, downloads ~88 GiB of weights, and reboots once to apply kernel arguments. To set up just one part, use `--limit`, e.g. `--limit framework-1.local`.
+
+  9. Open the Turnstone dashboard at `https://dell-gb10-1.local` and log in. Then, under **System → Models**, add each model using the alias, base URL, and concurrency printed at the end of the playbook run, and assign the roles:
+     - **Default model** (Settings → Model → `default_alias`): `qwen3.8-flash-next`
+     - **Judge** and **Output guard judge**: `qwen3.8-27b`
+     - **Task agent**: `qwen3.8-flash-next-fw`
+
+     Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
+
+  10. (Optional) Add integrations in the dashboard: the GitHub MCP server (**Extensions → MCP Servers**, `https://api.githubcopilot.com/mcp/readonly` with a read-only PAT), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
+
+To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > backup.sql`) and run the playbook again.
 
 ## License
 
-TODO.
+GPLv3 or later. See [LICENSE](LICENSE).
 
 ## AI Disclaimer
 

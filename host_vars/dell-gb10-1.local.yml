@@ -1,0 +1,26 @@
+---
+# Qwen3.8 27B (dense) - judge, output guard, and vision.
+llm_runtime: docker
+llm_model_name: qwen3.8-27b
+llm_container_image: ghcr.io/spark-arena/dgx-vllm-eugr-nightly:latest
+llm_container_volumes:
+  - "{{ ansible_facts['user_dir'] }}/.cache/huggingface:/root/.cache/huggingface"
+llm_container_command:
+  - vllm
+  - serve
+  - unsloth/Qwen3.8-27B-NVFP4
+  - --served-model-name
+  - "{{ llm_model_name }}"
+  - --host
+  - 0.0.0.0
+  - --port
+  - "{{ llm_container_port }}"
+  - --max-model-len
+  - "131072"
+  - --gpu-memory-utilization
+  - "0.7"
+  - --reasoning-parser
+  - qwen3
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - qwen3_coder

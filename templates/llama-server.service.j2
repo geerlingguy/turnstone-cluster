@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+[Unit]
+Description=llama.cpp - {{ llm_model_name }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ ansible_user_id }}
+EnvironmentFile=/etc/llama-server.env
+ExecStart=/usr/local/bin/llama-server \
+  -m {{ llm_model_dir }}/{{ llm_model_file }} \
+{% if llm_mmproj_file %}
+  --mmproj {{ llm_model_dir }}/{{ llm_mmproj_file }} \
+{% endif %}
+{% for arg in llama_cpp_server_args %}
+  {{ arg }} \
+{% endfor %}
+  --host 0.0.0.0 --port {{ llm_port }} \
+  --alias {{ llm_model_name }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
