@@ -33,3 +33,10 @@ jobs:
 
       - name: Run ansible-lint.
         run: ansible-lint
+
+      - name: Test Prometheus recording rules.
+        run: |
+          curl -sSL https://github.com/prometheus/prometheus/releases/download/v3.15.1/prometheus-3.15.1.linux-amd64.tar.gz \
+            | tar -xz --strip-components=1 prometheus-3.15.1.linux-amd64/promtool
+          ./promtool check rules files/monitoring/rules.yml
+          ./promtool test rules files/monitoring/rules_test.yml

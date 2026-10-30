@@ -1,0 +1,89 @@
+---
+# Unit tests for rules.yml: promtool test rules files/monitoring/rules_test.yml
+# Series shapes are taken from the real cluster.
+rule_files:
+  - rules.yml
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      # NVIDIA GB10.
+      - series: 'nvidia_smi_power_draw_watts{node="gb10",uuid="a"}'
+        values: '36x8'
+      - series: 'nvidia_smi_utilization_gpu_ratio{node="gb10",uuid="a"}'
+        values: '0.5x8'
+      # Framework: one amdgpu chip reporting BOTH power1_average and power1_input.
+      - series: 'node_hwmon_power_average_watt{node="fw",chip="c1",sensor="power1"}'
+        values: '5x8'
+      - series: 'node_hwmon_power_watt{node="fw",chip="c1",sensor="power1"}'
+        values: '5x8'
+      - series: 'node_hwmon_chip_names{node="fw",chip="c1",chip_name="amdgpu"}'
+        values: '1x8'
+      # R9700 server: iGPU (power_watt only) + 2 dGPUs (power_average only) + CPU.
+      - series: 'node_hwmon_power_watt{node="ai",chip="igpu",sensor="power1"}'
+        values: '1x8'
+      - series: 'node_hwmon_power_average_watt{node="ai",chip="gpu0",sensor="power1"}'
+        values: '20x8'
+      - series: 'node_hwmon_power_average_watt{node="ai",chip="gpu1",sensor="power1"}'
+        values: '16x8'
+      - series: 'node_hwmon_power_average_watt{node="ai",chip="cpu",sensor="power1"}'
+        values: '150x8'
+      - series: 'node_hwmon_chip_names{node="ai",chip="igpu",chip_name="amdgpu"}'
+        values: '1x8'
+      - series: 'node_hwmon_chip_names{node="ai",chip="gpu0",chip_name="amdgpu"}'
+        values: '1x8'
+      - series: 'node_hwmon_chip_names{node="ai",chip="gpu1",chip_name="amdgpu"}'
+        values: '1x8'
+      - series: 'node_hwmon_chip_names{node="ai",chip="cpu",chip_name="k10temp"}'
+        values: '1x8'
+      - series: 'node_drm_gpu_busy_percent{node="ai",card="card1"}'
+        values: '95x8'
+      - series: 'node_drm_gpu_busy_percent{node="ai",card="card3"}'
+        values: '3x8'
+      # LLM runtimes.
+      - series: 'vllm:num_requests_running{node="gb10",model_name="m"}'
+        values: '1x8'
+      - series: 'vllm:kv_cache_usage_perc{node="gb10",model_name="m"}'
+        values: '0.25x8'
+      - series: 'llamacpp:requests_processing{node="fw"}'
+        values: '2x8'
+      - series: 'radiance_decode_tps{node="ai"}'
+        values: '110x8'
+      - series: 'radiance_running{node="ai"}'
+        values: '3x8'
+    promql_expr_test:
+      - expr: gpu:power:watts
+        eval_time: 2m
+        exp_samples:
+          - labels: 'gpu:power:watts{node="gb10"}'
+            value: 36
+          - labels: 'gpu:power:watts{node="fw"}'
+            value: 5
+          - labels: 'gpu:power:watts{node="ai"}'
+            value: 37
+      - expr: gpu:busy:max_percent
+        eval_time: 2m
+        exp_samples:
+          - labels: 'gpu:busy:max_percent{node="gb10"}'
+            value: 50
+          - labels: 'gpu:busy:max_percent{node="ai"}'
+            value: 95
+      - expr: llm:requests_running
+        eval_time: 2m
+        exp_samples:
+          - labels: 'llm:requests_running{node="gb10"}'
+            value: 1
+          - labels: 'llm:requests_running{node="fw"}'
+            value: 2
+          - labels: 'llm:requests_running{node="ai"}'
+            value: 3
+      - expr: llm:decode:tokens_per_second{node="ai"}
+        eval_time: 2m
+        exp_samples:
+          - labels: 'llm:decode:tokens_per_second{node="ai"}'
+            value: 110
+      - expr: llm:kv_cache_used:percent
+        eval_time: 2m
+        exp_samples:
+          - labels: 'llm:kv_cache_used:percent{node="gb10"}'
+            value: 25

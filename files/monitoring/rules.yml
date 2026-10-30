@@ -17,13 +17,15 @@ groups:
         expr: >-
           max by (node) (nvidia_smi_utilization_gpu_ratio * 100)
           or max by (node) (node_drm_gpu_busy_percent)
+      # Some amdgpu chips report both power1_average and power1_input, so take
+      # one value per chip before joining (duplicates would fail the rule).
       - record: gpu:power:watts
         expr: >-
           sum by (node) (nvidia_smi_power_draw_watts)
           or sum by (node) (
-            {__name__=~"node_hwmon_power_(average_|input_)?watt"}
+            max by (node, chip) ({__name__=~"node_hwmon_power_(average_)?watt"})
             * on (node, chip) group_left
-            node_hwmon_chip_names{chip_name="amdgpu"}
+            max by (node, chip) (node_hwmon_chip_names{chip_name="amdgpu"})
           )
 
       # LLM token rates (tokens/s).
