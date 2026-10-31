@@ -1,4 +1,29 @@
 ---
+- name: Security
+  hosts: all
+  become: true
+  vars_files:
+    - config.yml
+
+  roles:
+    - geerlingguy.security
+
+  handlers:
+    - name: Reload SSH
+      ansible.builtin.systemd_service:
+        name: "{{ 'ssh' if ansible_facts['os_family'] == 'Debian' else 'sshd' }}"
+        state: reloaded
+      become: true
+
+    - name: Reload ufw
+      ansible.builtin.command: ufw reload
+      changed_when: true
+      become: true
+
+  tasks:
+    - name: Lock down SSH, enable automatic updates, and set up the firewall.
+      ansible.builtin.include_tasks: tasks/security.yml
+
 - name: Turnstone node
   hosts: turnstone
   vars_files:

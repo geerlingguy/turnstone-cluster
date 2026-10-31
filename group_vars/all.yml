@@ -71,3 +71,15 @@ nvidia_gpu_exporter_url: >-
   https://github.com/utkuozdemir/nvidia_gpu_exporter/releases/download/v{{ nvidia_gpu_exporter_version
   }}/nvidia_gpu_exporter_{{ nvidia_gpu_exporter_version }}_linux_{{ 'arm64' if monitoring_arch == 'arm64' else 'x86_64' }}.tar.gz
 grafana_admin_password: ""
+
+# Security (geerlingguy.security, plus tasks/security.yml).
+# The role's dnf-automatic setup predates dnf5 (Fedora 41+); tasks/security.yml handles it there.
+security_autoupdate_enabled: "{{ ansible_facts['os_family'] == 'Debian' }}"
+# GPU driver updates break running GPU workloads until a reboot.
+security_autoupdate_blacklist:
+  - ".*nvidia"
+  - ".*cuda"
+# Networks allowed to reach LLM, exporter, Turnstone, and Grafana ports. SSH is open to all.
+firewall_allowed_networks:
+  - "{{ llm_allowed_network }}"
+firewall_extra_tcp_ports: []

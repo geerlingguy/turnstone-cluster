@@ -86,15 +86,3 @@
         enabled: true
         daemon_reload: true
       become: true
-
-- name: Allow LAN access to the exporters (firewalld).
-  ansible.posix.firewalld:
-    rich_rule: >-
-      rule family=ipv4 source address={{ llm_allowed_network }}
-      port port={{ item }} protocol=tcp accept
-    permanent: true
-    immediate: true
-    state: enabled
-  loop: "{{ [9100] + ([9835] if llm_gpu_vendor == 'nvidia' else []) }}"
-  become: true
-  when: ansible_facts['os_family'] == 'RedHat'

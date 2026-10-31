@@ -112,15 +112,5 @@
     daemon_reload: true
   become: true
 
-- name: Allow LAN access to llama-server.
-  ansible.posix.firewalld:
-    rich_rule: >-
-      rule family=ipv4 source address={{ llm_allowed_network }}
-      port port={{ llm_port }} protocol=tcp accept
-    permanent: true
-    immediate: true
-    state: enabled
-  become: true
-
 - name: Run any pending llama-server restart before health checks.
   ansible.builtin.meta: flush_handlers
