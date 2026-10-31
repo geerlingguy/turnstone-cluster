@@ -79,9 +79,14 @@ panels += [
          [("(sum(rate(turnstone_judge_llm_latency_seconds_sum[15m]))"
            " / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))) > 0", "")], "s", 12, y, decimals=1,
          no_value="no calls"),
-    stat("Judge latency (p50)",
-         [(f"histogram_quantile(0.5, sum by (le) (rate({JUDGE_BUCKETS}[15m]))) > 0", "")], "s", 15, y, decimals=1,
-         no_value="no calls"),
+    # Turnstone's buckets stop at 10s, so quantiles can't go above 10s. Show
+    # the share of judge calls slower than that instead.
+    stat("Judge calls > 10s",
+         [(f'(1 - sum(rate({JUDGE_BUCKETS}{{le=~"10|10.0"}}[15m]))'
+           " / sum(rate(turnstone_judge_llm_latency_seconds_count[15m]))) * 100"
+           " and sum(rate(turnstone_judge_llm_latency_seconds_count[15m])) > 0", "")], "percent", 15, y,
+         thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 10},
+                     {"color": "red", "value": 50}], max_=100, no_value="no calls"),
     stat("Tokens/min", [('sum(rate(turnstone_tokens_total{type=~"prompt|completion"}[5m])) * 60', "")],
          "short", 18, y),
     stat("Cache read tokens/min", [('sum(rate(turnstone_tokens_total{type="cache_read"}[5m])) * 60', "")],
@@ -101,11 +106,9 @@ top = {"id": nid(), "type": "bargauge", "title": "Top workstreams by tokens (1h)
 panels += [
     ts("Tokens/min by type", [("sum by (type) (rate(turnstone_tokens_total[5m])) * 60", "{{type}}")],
        "short", 0, y, w=8),
-    ts("Judge latency", [
+    ts("Judge latency (mean)", [
         ("sum(rate(turnstone_judge_llm_latency_seconds_sum[5m]))"
-         " / sum(rate(turnstone_judge_llm_latency_seconds_count[5m]))", "mean"),
-        (f"histogram_quantile(0.5, sum by (le) (rate({JUDGE_BUCKETS}[5m])))", "p50"),
-        (f"histogram_quantile(0.95, sum by (le) (rate({JUDGE_BUCKETS}[5m])))", "p95")], "s", 8, y, w=8),
+         " / sum(rate(turnstone_judge_llm_latency_seconds_count[5m]))", "mean")], "s", 8, y, w=8),
     top,
 ]
 y += 7
