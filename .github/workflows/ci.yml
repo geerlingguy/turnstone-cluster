@@ -26,6 +26,9 @@ jobs:
       - name: Install Ansible and ansible-lint.
         run: pip3 install ansible ansible-lint
 
+      - name: Install required roles.
+        run: ansible-galaxy role install -r requirements.yml
+
       - name: Use example inventory and config.
         run: |
           cp example.hosts.ini hosts.ini
