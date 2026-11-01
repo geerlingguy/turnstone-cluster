@@ -9,17 +9,7 @@
     - geerlingguy.security
     - geerlingguy.firewall
 
-  handlers:
-    - name: Reload SSH
-      ansible.builtin.systemd_service:
-        name: "{{ 'ssh' if ansible_facts['os_family'] == 'Debian' else 'sshd' }}"
-        state: reloaded
-      become: true
-
   tasks:
-    - name: Lock down SSH and enable automatic updates.
-      ansible.builtin.include_tasks: tasks/security.yml
-
     - name: Apply any firewall changes now.
       ansible.builtin.meta: flush_handlers
 

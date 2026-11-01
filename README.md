@@ -13,7 +13,7 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 
 The playbook (`main.yml`) has four plays:
 
-  1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
+  1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates on Ubuntu), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
   2. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. The dashboard is served on port 443.
   3. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node. Per-node model settings live in `host_vars/`.
   4. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
@@ -25,7 +25,7 @@ The playbook (`main.yml`) has four plays:
      - **GB10s**: DGX OS, fully updated (`sudo apt update && sudo apt dist-upgrade`, then `sudo fwupdmgr upgrade`).
      - **Framework Desktop**: Fedora (stable, not Rawhide; check with `dnf repolist`). In the BIOS, set the UMA / dedicated VRAM size to the minimum (512 MB).
      - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
-  3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins (and stops if it doesn't find an authorized key).
+  3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins.
   4. Clone this repository and install the required roles and collections:
 
      ```
