@@ -37,6 +37,7 @@
     - name: Ensure Turnstone dependencies are installed.
       ansible.builtin.apt:
         name:
+          - cron
           - git
           - openssl
         state: present
@@ -47,6 +48,29 @@
         path: "{{ turnstone_workspace_dir }}"
         state: directory
         mode: "0755"
+
+    - name: Clone repos into the Turnstone workspace.
+      ansible.builtin.shell: |
+        set -e
+        git clone --filter=blob:none --no-checkout {{ item.repo | quote }} {{ item.name | quote }}
+        git -C {{ item.name | quote }} sparse-checkout set --no-cone {{ item.sparse_paths | default(['/*']) | map('quote') | join(' ') }}
+        git -C {{ item.name | quote }} checkout
+      args:
+        chdir: "{{ turnstone_workspace_dir }}"
+        creates: "{{ turnstone_workspace_dir }}/{{ item.name }}"
+      loop: "{{ turnstone_workspace_repos }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Keep workspace repos up to date.
+      ansible.builtin.cron:
+        name: "pull {{ item.name }}"
+        minute: "0"
+        hour: "*/6"
+        job: "git -C {{ (turnstone_workspace_dir ~ '/' ~ item.name) | quote }} pull -q --ff-only"
+      loop: "{{ turnstone_workspace_repos }}"
+      loop_control:
+        label: "{{ item.name }}"
 
     - name: Check out Turnstone.
       ansible.builtin.git:

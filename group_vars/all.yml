@@ -8,6 +8,13 @@ turnstone_install_dir: "{{ ansible_facts['user_dir'] }}/turnstone"
 turnstone_workspace_dir: "{{ ansible_facts['user_dir'] }}/turnstone-workspace"
 turnstone_https_port: 443
 turnstone_node_count: 1
+# Repos cloned into the workspace and pulled every 6 hours; sparse_paths limits
+# which files are checked out (default: everything).
+turnstone_workspace_repos:
+  - name: jeffgeerling-com
+    repo: https://github.com/geerlingguy/jeffgeerling-com.git
+    sparse_paths:
+      - /content/**/*.md
 
 # LLM servers (the 'ai_nodes' group).
 llm_api_key: ""
