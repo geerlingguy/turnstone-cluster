@@ -60,7 +60,7 @@ The playbook (`main.yml`) has four plays:
 
   10. (Optional) Add integrations in the dashboard: the GitHub MCP server (**Extensions → MCP Servers**, `https://api.githubcopilot.com/mcp/readonly` with a read-only PAT), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
 
-To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > backup.sql`) and run the playbook again.
+To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > turnstone-backup-$(date +%F).sql`) and run the playbook again.
 
 ## Monitoring
 
