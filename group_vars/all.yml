@@ -73,8 +73,6 @@ nvidia_gpu_exporter_url: >-
 grafana_admin_password: ""
 
 # Security (geerlingguy.security).
-# The role's dnf-automatic setup doesn't work with dnf5 (Fedora 41+).
-security_autoupdate_enabled: "{{ ansible_facts['os_family'] == 'Debian' }}"
 # GPU driver updates break running GPU workloads until a reboot.
 security_autoupdate_blacklist:
   - ".*nvidia"
