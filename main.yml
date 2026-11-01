@@ -7,6 +7,7 @@
 
   roles:
     - geerlingguy.security
+    - geerlingguy.firewall
 
   handlers:
     - name: Reload SSH
@@ -15,14 +16,27 @@
         state: reloaded
       become: true
 
-    - name: Reload ufw
-      ansible.builtin.command: ufw reload
-      changed_when: true
-      become: true
-
   tasks:
-    - name: Lock down SSH, enable automatic updates, and set up the firewall.
+    - name: Lock down SSH and enable automatic updates.
       ansible.builtin.include_tasks: tasks/security.yml
+
+    - name: Apply any firewall changes now.
+      ansible.builtin.meta: flush_handlers
+
+    # Restarting the firewall flushes Docker's filter rules; restarting Docker restores them.
+    - name: Check that Docker's firewall rules are in place.
+      ansible.builtin.command: iptables -S FORWARD
+      register: firewall_forward_rules
+      changed_when: false
+      when: firewall_docker_host and ansible_facts['docker0'] is defined
+
+    - name: Restart Docker to restore its firewall rules.
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+      when:
+        - firewall_forward_rules.stdout is defined
+        - "'DOCKER' not in firewall_forward_rules.stdout"
 
 - name: Turnstone node
   hosts: turnstone

@@ -63,24 +63,3 @@
         name: dnf-automatic.timer
         state: started
         enabled: true
-
-# Firewall: SSH and mDNS from anywhere; everything else from allowed networks only.
-- name: Determine which ports this host serves to the LAN.
-  ansible.builtin.set_fact:
-    security_lan_tcp_ports: >-
-      {{ [9100]
-         + ([9835] if llm_gpu_vendor == 'nvidia' else [])
-         + ([llm_port] if llm_runtime | default('') == 'llama-cpp' else [])
-         + firewall_extra_tcp_ports }}
-    # Containers reaching services on their own host (e.g. Prometheus scraping node_exporter).
-    security_source_networks: >-
-      {{ firewall_allowed_networks
-         + (['172.16.0.0/12'] if ansible_facts['docker0'] is defined else []) }}
-
-- name: Configure ufw.
-  ansible.builtin.include_tasks: firewall-ufw.yml
-  when: ansible_facts['os_family'] == 'Debian'
-
-- name: Configure firewalld.
-  ansible.builtin.include_tasks: firewall-firewalld.yml
-  when: ansible_facts['os_family'] == 'RedHat'

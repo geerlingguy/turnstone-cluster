@@ -79,7 +79,42 @@ security_autoupdate_enabled: "{{ ansible_facts['os_family'] == 'Debian' }}"
 security_autoupdate_blacklist:
   - ".*nvidia"
   - ".*cuda"
-# Networks allowed to reach LLM, exporter, Turnstone, and Grafana ports. SSH is open to all.
+# Firewall (geerlingguy.firewall). SSH and mDNS are open to all; LLM, exporter,
+# Turnstone, and Grafana ports only to firewall_allowed_networks.
 firewall_allowed_networks:
   - "{{ llm_allowed_network }}"
 firewall_extra_tcp_ports: []
+firewall_allowed_tcp_ports:
+  - "22"
+firewall_allowed_udp_ports:
+  - "5353"
+firewall_disable_firewalld: true
+firewall_disable_ufw: true
+# Docker manages its own iptables rules.
+firewall_flush_rules_and_chains: false
+firewall_docker_host: "{{ llm_runtime | default('') == 'docker' or inventory_hostname in groups['turnstone'] }}"
+firewall_lan_tcp_ports: >-
+  {{ [9100]
+     + ([9835] if llm_gpu_vendor == 'nvidia' else [])
+     + ([llm_port] if llm_runtime | default('') == 'llama-cpp' else [])
+     + firewall_extra_tcp_ports }}
+# Includes Docker's networks, so containers can reach services on their own host.
+firewall_lan_networks: "{{ firewall_allowed_networks + (['172.16.0.0/12'] if firewall_docker_host else []) }}"
+firewall_lan_rules: >-
+  {{ firewall_lan_networks | product(firewall_lan_tcp_ports)
+     | map('join', ' -p tcp --dport ')
+     | map('regex_replace', '^', 'iptables -A INPUT -s ')
+     | map('regex_replace', '$', ' -j ACCEPT') | list }}
+# Docker-published ports bypass INPUT; DOCKER-USER limits them to the allowed networks.
+# The role's script sets FORWARD to ACCEPT; Docker hosts shouldn't route other traffic.
+firewall_docker_rules: >-
+  {{ (['iptables -P FORWARD DROP',
+       'iptables -N DOCKER-USER 2>/dev/null || true',
+       'iptables -F DOCKER-USER',
+       'iptables -A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN']
+      + (firewall_allowed_networks
+         | map('regex_replace', '^', 'iptables -A DOCKER-USER -i ' ~ ansible_facts['default_ipv4']['interface'] ~ ' -s ')
+         | map('regex_replace', '$', ' -j RETURN') | list)
+      + ['iptables -A DOCKER-USER -i ' ~ ansible_facts['default_ipv4']['interface'] ~ ' -j DROP'])
+     if firewall_docker_host else [] }}
+firewall_additional_rules: "{{ firewall_lan_rules + firewall_docker_rules }}"

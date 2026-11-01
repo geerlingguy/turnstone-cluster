@@ -2,6 +2,8 @@
 roles:
   - name: geerlingguy.security
     version: 3.0.2
+  - name: geerlingguy.firewall
+    version: 2.7.0
 
 collections:
   - name: ansible.posix

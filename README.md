@@ -13,7 +13,7 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 
 The playbook (`main.yml`) has four plays:
 
-  1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and sets up a firewall (ufw on Ubuntu, firewalld on Fedora). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
+  1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
   2. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. The dashboard is served on port 443.
   3. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node. Per-node model settings live in `host_vars/`.
   4. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
