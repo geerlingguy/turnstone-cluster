@@ -40,6 +40,19 @@ tests:
         values: '95x8'
       - series: 'node_drm_gpu_busy_percent{node="ai",card="card3"}'
         values: '3x8'
+      # Temperatures.
+      - series: 'nvidia_smi_temperature_gpu{node="gb10",uuid="a"}'
+        values: '60x8'
+      - series: 'node_thermal_zone_temp{node="gb10",zone="0",type="acpitz"}'
+        values: '55x8'
+      - series: 'node_hwmon_temp_celsius{node="ai",chip="gpu0",sensor="temp1"}'
+        values: '50x8'
+      - series: 'node_hwmon_temp_celsius{node="ai",chip="gpu0",sensor="temp2"}'
+        values: '72x8'
+      - series: 'node_hwmon_temp_celsius{node="ai",chip="cpu",sensor="temp1"}'
+        values: '65x8'
+      - series: 'node_thermal_zone_temp{node="ai",zone="0",type="acpitz"}'
+        values: '30x8'
       # LLM runtimes.
       - series: 'vllm:num_requests_running{node="gb10",model_name="m"}'
         values: '1x8'
@@ -66,6 +79,20 @@ tests:
             value: 50
           - labels: 'gpu:busy:max_percent{node="ai"}'
             value: 95
+      - expr: node:cpu_temp:celsius
+        eval_time: 2m
+        exp_samples:
+          - labels: 'node:cpu_temp:celsius{node="gb10"}'
+            value: 55
+          - labels: 'node:cpu_temp:celsius{node="ai"}'
+            value: 65
+      - expr: gpu:temp:max_celsius
+        eval_time: 2m
+        exp_samples:
+          - labels: 'gpu:temp:max_celsius{node="gb10"}'
+            value: 60
+          - labels: 'gpu:temp:max_celsius{node="ai"}'
+            value: 72
       - expr: llm:requests_running
         eval_time: 2m
         exp_samples:

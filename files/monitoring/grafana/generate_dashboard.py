@@ -132,9 +132,11 @@ panels += [
 y += 4
 panels += [
     ts("Tokens/s", [(f"llm:decode:tokens_per_second{N}", "decode"),
-                    (f"llm:prefill:tokens_per_second{N}", "prefill")], "none", 0, y),
+                    (f"llm:prefill:tokens_per_second{N}", "prefill")], "none", 0, y, w=8),
     ts("Utilization", [(f"node:cpu_used:percent{N}", "CPU"), (f"node:memory_used:percent{N}", "RAM"),
-                       (f"gpu:busy:max_percent{N}", "GPU")], "percent", 12, y, max_=100),
+                       (f"gpu:busy:max_percent{N}", "GPU")], "percent", 8, y, w=8, max_=100),
+    ts("Temperature", [(f"node:cpu_temp:celsius{N}", "CPU"), (f"gpu:temp:max_celsius{N}", "GPU")],
+       "celsius", 16, y, w=8),
 ]
 
 dash = {
