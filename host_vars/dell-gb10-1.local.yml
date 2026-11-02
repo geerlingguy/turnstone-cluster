@@ -2,6 +2,7 @@
 # Qwen3.8 Flash-Next (125B MoE, NVFP4) - judge and output guard.
 # Image: upstream vllm/vllm-openai:qwen38-flash-next plus GB10 kernel fixes.
 llm_runtime: docker
+llm_max_concurrency: 4
 llm_model_name: qwen3.8-flash-next-2
 llm_container_image: krisbailey/qwen3.8-flash-next-nvfp4-dgx-spark:latest
 llm_container_env:

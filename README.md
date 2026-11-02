@@ -7,7 +7,7 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 | Host | Hardware | Role | Model | Runtime |
 | --- | --- | --- | --- | --- |
 | `dell-gb10-1.local` | Dell GB10 (DGX OS) | Turnstone + LLM | `qwen3.8-flash-next-2` (judge, output guard) | vLLM (Docker) |
-| `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (task agent) | vLLM (Docker) |
+| `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (spare capacity) | vLLM (Docker) |
 | `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | LLM | `qwen3.8-27b-r9700` (main coding model) | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
 
 The playbook (`main.yml`) has four plays:
@@ -52,7 +52,7 @@ The playbook (`main.yml`) has four plays:
   9. Open the Turnstone dashboard at `https://dell-gb10-1.local` and log in. Then, under **System → Models**, add each model using the alias, base URL, and concurrency printed at the end of the playbook run, and assign the roles:
      - **Default model** (Settings → Model → `default_alias`): `qwen3.8-27b-r9700`
      - **Judge** and **Output guard judge**: `qwen3.8-flash-next-2`
-     - **Task agent**: `qwen3.8-flash-next`
+     - **Task agent**: `qwen3.8-27b-r9700`
 
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 
