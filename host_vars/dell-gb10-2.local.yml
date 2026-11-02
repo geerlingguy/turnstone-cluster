@@ -1,5 +1,5 @@
 ---
-# Qwen3.8 Flash-Next (125B MoE, NVFP4) - main coding model.
+# Qwen3.8 Flash-Next (125B MoE, NVFP4) - task agent.
 # Image: upstream vllm/vllm-openai:qwen38-flash-next plus GB10 kernel fixes.
 llm_runtime: docker
 llm_model_name: qwen3.8-flash-next
