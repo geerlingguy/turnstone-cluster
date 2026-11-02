@@ -8,7 +8,6 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 | --- | --- | --- | --- | --- |
 | `dell-gb10-1.local` | Dell GB10 (DGX OS) | Turnstone + LLM | `qwen3.8-27b` (judge, vision) | vLLM (Docker) |
 | `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (main coding model) | vLLM (Docker) |
-| `framework-1.local` | Framework Desktop, Ryzen AI Max+ 395, 128 GB (Fedora) | LLM | `qwen3.8-flash-next-fw` (task agent) | llama.cpp (Vulkan) |
 | `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | LLM | `qwen3.8-27b-r9700` | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
 
 The playbook (`main.yml`) has four plays:
@@ -23,7 +22,6 @@ The playbook (`main.yml`) has four plays:
   1. Install Ansible on your computer: `pip3 install ansible`
   2. Install an OS on each node:
      - **GB10s**: DGX OS, fully updated (`sudo apt update && sudo apt dist-upgrade`, then `sudo fwupdmgr upgrade`).
-     - **Framework Desktop**: Fedora (stable, not Rawhide; check with `dnf repolist`). In the BIOS, set the UMA / dedicated VRAM size to the minimum (512 MB).
      - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
   3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins.
   4. Clone this repository and install the required roles and collections:
@@ -49,12 +47,12 @@ The playbook (`main.yml`) has four plays:
      ansible-playbook main.yml -K
      ```
 
-     First runs take a long time: the GB10s download models inside their containers, and the Framework builds llama.cpp, downloads ~88 GiB of weights, and reboots once to apply kernel arguments. To set up just one part, use `--limit`, e.g. `--limit framework-1.local`.
+     First runs take a long time: models are downloaded before the LLM servers start. To set up just one node, use `--limit`, e.g. `--limit ai-server.mmoffice.net`.
 
   9. Open the Turnstone dashboard at `https://dell-gb10-1.local` and log in. Then, under **System → Models**, add each model using the alias, base URL, and concurrency printed at the end of the playbook run, and assign the roles:
      - **Default model** (Settings → Model → `default_alias`): `qwen3.8-flash-next`
      - **Judge** and **Output guard judge**: `qwen3.8-27b`
-     - **Task agent**: `qwen3.8-flash-next-fw`
+     - **Task agent**: `qwen3.8-27b-r9700`
 
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 
@@ -66,7 +64,7 @@ To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the da
 
 Open `http://<turnstone-node-ip>:3000` (the playbook prints the URL) for the **Turnstone Cluster** dashboard. It's read-only and needs no login. It shows cluster-wide totals at the top, a **Turnstone** row (workstreams, tool calls, judge calls and latency, and token usage across every model, including cloud models like Claude), then one row per node with CPU, RAM, GPU utilization and power, decode/prefill tokens/s, running/waiting requests, and KV cache usage.
 
-Prometheus recording rules (`files/monitoring/rules.yml`) put vLLM, llama.cpp, and Radiance metrics under the same names (`llm:*`, `gpu:*`, `node:*`), so every node's row looks the same regardless of runtime. Each node's `llm_metrics_type` (`vllm`, `llamacpp`, or `radiance`) tells Prometheus how to scrape it. Radiance's `/stats` JSON is converted by `json_exporter`.
+Prometheus recording rules (`files/monitoring/rules.yml`) put vLLM and Radiance metrics under the same names (`llm:*`, `gpu:*`, `node:*`), so every node's row looks the same regardless of runtime. Each node's `llm_metrics_type` (`vllm` or `radiance`) tells Prometheus how to scrape it. Radiance's `/stats` JSON is converted by `json_exporter`.
 
 Prometheus itself listens only on `127.0.0.1:9090` on the Turnstone node. To edit dashboards in Grafana, log in as `admin` (set `grafana_admin_password` in `config.yml`). The provisioned dashboard is read-only, so save edits as a copy, or edit `files/monitoring/grafana/generate_dashboard.py` and regenerate `turnstone-cluster.json` with it.
 

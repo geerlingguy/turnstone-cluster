@@ -6,6 +6,5 @@ roles:
     version: 2.7.0
 
 collections:
-  - name: ansible.posix
   - name: community.docker
     version: ">=3.6.0"
