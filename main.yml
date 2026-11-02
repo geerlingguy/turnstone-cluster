@@ -136,19 +136,6 @@
   vars_files:
     - config.yml
 
-  handlers:
-    - name: Reboot
-      ansible.builtin.reboot:
-        reboot_timeout: 900
-      become: true
-
-    - name: Restart llama-server
-      ansible.builtin.systemd_service:
-        name: llama-server
-        state: restarted
-        daemon_reload: true
-      become: true
-
   tasks:
     - name: Download model weights.
       ansible.builtin.include_tasks: tasks/model-download.yml

@@ -27,7 +27,7 @@ llm_health_path: /health
 llm_supports_api_key: true
 llm_hf_venv: "{{ ansible_facts['user_dir'] }}/.local/share/hf-cli"
 llm_host_dirs: []
-llm_metrics_type: vllm  # vllm, llamacpp, or radiance (for monitoring).
+llm_metrics_type: vllm  # vllm or radiance (for monitoring).
 
 # LLM server in Docker (llm_runtime: docker).
 llm_install_docker: false  # DGX OS ships with Docker.
@@ -41,12 +41,8 @@ llm_container_command: []
 llm_container_volumes: []
 llm_named_volumes: []
 
-# llama.cpp (llm_runtime: llama-cpp).
-llama_cpp_version: b12015
-llama_cpp_src_dir: "{{ ansible_facts['user_dir'] }}/llama.cpp"
+# Model download (llm_hf_repo).
 llm_model_dir: "{{ ansible_facts['user_dir'] }}/models"
-llm_mmproj_file: ""
-llm_ttm_pages: 32505856  # ~124 GiB of 4 KiB pages.
 
 # Monitoring (Prometheus + Grafana on the Turnstone node).
 monitoring_dir: /opt/monitoring
@@ -101,7 +97,6 @@ firewall_docker_host: "{{ llm_runtime | default('') == 'docker' or inventory_hos
 firewall_lan_tcp_ports: >-
   {{ [9100]
      + ([9835] if llm_gpu_vendor == 'nvidia' else [])
-     + ([llm_port] if llm_runtime | default('') == 'llama-cpp' else [])
      + firewall_extra_tcp_ports }}
 # Includes Docker's networks, so containers can reach services on their own host.
 firewall_lan_networks: "{{ firewall_allowed_networks + (['172.16.0.0/12'] if firewall_docker_host else []) }}"

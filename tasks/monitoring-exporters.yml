@@ -17,14 +17,12 @@
     creates: "/opt/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}/node_exporter"
   become: true
 
-# SELinux won't let systemd run binaries from /opt, so install to /usr/local/bin.
 - name: Install node_exporter.
   ansible.builtin.copy:
     src: "/opt/node_exporter-{{ node_exporter_version }}.linux-{{ monitoring_arch }}/node_exporter"
     dest: /usr/local/bin/node_exporter
     remote_src: true
     mode: "0755"
-    setype: bin_t
   become: true
   notify: Restart node_exporter
 
