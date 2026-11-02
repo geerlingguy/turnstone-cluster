@@ -11,12 +11,30 @@ groups:
         expr: 100 * (1 - avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[1m])))
       - record: node:memory_used:percent
         expr: 100 * (1 - max by (node) (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+      # Hottest CPU sensor; thermal zones on SoCs without a CPU hwmon chip (GB10).
+      - record: node:cpu_temp:celsius
+        expr: >-
+          max by (node) (
+            node_hwmon_temp_celsius
+            * on (node, chip) group_left
+            max by (node, chip) (node_hwmon_chip_names{chip_name=~"k10temp|coretemp"})
+          )
+          or max by (node) (node_thermal_zone_temp)
 
       # GPU utilization (busiest GPU on the node) and total GPU power.
       - record: gpu:busy:max_percent
         expr: >-
           max by (node) (nvidia_smi_utilization_gpu_ratio * 100)
           or max by (node) (node_drm_gpu_busy_percent)
+      # Hottest GPU sensor (AMD: edge, junction, or memory).
+      - record: gpu:temp:max_celsius
+        expr: >-
+          max by (node) (nvidia_smi_temperature_gpu)
+          or max by (node) (
+            node_hwmon_temp_celsius
+            * on (node, chip) group_left
+            max by (node, chip) (node_hwmon_chip_names{chip_name="amdgpu"})
+          )
       # Some amdgpu chips report both power1_average and power1_input, so take
       # one value per chip before joining (duplicates would fail the rule).
       - record: gpu:power:watts

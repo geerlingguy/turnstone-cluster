@@ -66,6 +66,7 @@ node_exporter_collectors:
   - drm
   - loadavg
   - netdev
+  - thermal_zone
   - uname
 node_exporter_url: >-
   https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version

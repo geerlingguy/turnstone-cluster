@@ -1515,7 +1515,7 @@
       "gridPos": {
         "x": 0,
         "y": 29,
-        "w": 12,
+        "w": 8,
         "h": 7
       },
       "targets": [
@@ -1572,9 +1572,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 12,
+        "x": 8,
         "y": 29,
-        "w": 12,
+        "w": 8,
         "h": 7
       },
       "targets": [
@@ -1617,6 +1617,65 @@
             "spanNulls": true
           },
           "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Temperature",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 29,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node:cpu_temp:celsius{node=\"$node\"}",
+          "legendFormat": "CPU",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "gpu:temp:max_celsius{node=\"$node\"}",
+          "legendFormat": "GPU",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
         },
         "overrides": []
       },
