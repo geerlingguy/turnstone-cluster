@@ -2,26 +2,23 @@
 
 [![CI](https://github.com/geerlingguy/turnstone-cluster/actions/workflows/ci.yml/badge.svg)](https://github.com/geerlingguy/turnstone-cluster/actions/workflows/ci.yml)
 
-A local AI cluster configuration to run [Turnstone](https://github.com/turnstonelabs/turnstone) on an assortment of computers I have in the studio.
+A local AI cluster configuration to run [Turnstone](https://github.com/turnstonelabs/turnstone) on computers I have in the studio.
 
 | Host | Hardware | Role | Model | Runtime |
 | --- | --- | --- | --- | --- |
-| `dell-gb10-1.local` | Dell GB10 (DGX OS) | Turnstone + LLM | `qwen3.8-flash-next-2` (judge, output guard) | vLLM (Docker) |
-| `dell-gb10-2.local` | Dell GB10 (DGX OS) | LLM | `qwen3.8-flash-next` (spare capacity) | vLLM (Docker) |
-| `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | LLM | `qwen3.8-27b-r9700` (main coding model) | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
+| `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | Turnstone + LLM | `qwen3.8-27b-r9700` | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
 
 The playbook (`main.yml`) has four plays:
 
   1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
-  2. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. Repos in `turnstone_workspace_repos` (by default, just the Markdown from my blog) are cloned into the workspace and pulled every 6 hours. The dashboard is served on port 443.
-  3. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node. Per-node model settings live in `host_vars/`.
+  2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node (installing Docker if needed). Per-node model settings live in `host_vars/`.
+  3. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. Repos in `turnstone_workspace_repos` (by default, just the Markdown from my blog) are cloned into the workspace and pulled every 6 hours. The dashboard is served on port 443.
   4. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
 
 ## Setup
 
   1. Install Ansible on your computer: `pip3 install ansible`
   2. Install an OS on each node:
-     - **GB10s**: DGX OS, fully updated (`sudo apt update && sudo apt dist-upgrade`, then `sudo fwupdmgr upgrade`).
      - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
   3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins.
   4. Clone this repository and install the required roles and collections:
@@ -49,10 +46,7 @@ The playbook (`main.yml`) has four plays:
 
      First runs take a long time: models are downloaded before the LLM servers start. To set up just one node, use `--limit`, e.g. `--limit ai-server.mmoffice.net`.
 
-  9. Open the Turnstone dashboard at `https://dell-gb10-1.local` and log in. Then, under **System → Models**, add each model using the alias, base URL, and concurrency printed at the end of the playbook run, and assign the roles:
-     - **Default model** (Settings → Model → `default_alias`): `qwen3.8-27b-r9700`
-     - **Judge** and **Output guard judge**: `qwen3.8-flash-next-2`
-     - **Task agent**: `qwen3.8-27b-r9700`
+  9. Open the Turnstone dashboard at `https://ai-server.mmoffice.net` and log in. Then, under **System → Models**, add the model using the alias, base URL, and concurrency printed at the end of the playbook run, and make it the default (Settings → Model → `default_alias`). Leave the roles empty so they use the default.
 
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 
