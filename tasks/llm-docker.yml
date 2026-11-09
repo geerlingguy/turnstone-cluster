@@ -1,6 +1,5 @@
 ---
-# LLM server in Docker: vLLM on the NVIDIA GB10s (DGX OS), Radiance on the
-# AMD R9700 server (Ubuntu).
+# LLM server in Docker (vLLM on NVIDIA, Radiance on AMD).
 - name: Ensure Docker is installed.
   ansible.builtin.apt:
     name:
