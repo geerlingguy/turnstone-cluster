@@ -12,7 +12,7 @@ The playbook (`main.yml`) has four plays:
 
   1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
   2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node (installing Docker if needed). Per-node model settings live in `host_vars/`.
-  3. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. Repos in `turnstone_workspace_repos` (by default, just the Markdown from my blog) are cloned into the workspace and pulled every 6 hours. The dashboard is served on port 443.
+  3. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. Repos in `turnstone_workspace_repos` (by default, just the Markdown from my blog) are cloned into the workspace and pulled every 6 hours. Nodes run a `turnstone-tools:local` image with `gh`, the Docker CLI, Ansible, and Molecule added, and a Docker-in-Docker sidecar runs Molecule's test containers. See [PR workflow](#pr-workflow). The dashboard is served on port 443.
   4. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
 
 ## Setup
@@ -50,9 +50,40 @@ The playbook (`main.yml`) has four plays:
 
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 
-  10. (Optional) Add integrations in the dashboard: the GitHub MCP server (**Extensions → MCP Servers**, `https://api.githubcopilot.com/mcp/readonly` with a read-only PAT), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
+  10. (Optional) Add integrations in the dashboard: the GitHub MCP server (see [PR workflow](#pr-workflow)), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
 
 To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > turnstone-backup-$(date +%F).sql`) and run the playbook again.
+
+## PR workflow
+
+Turnstone can check out a PR on one of my Ansible roles, change it, run its Molecule tests, and comment or open a PR as the [geerlingbot](https://github.com/geerlingbot) account, with my approval before anything is posted.
+
+Molecule runs in a privileged Docker-in-Docker container (`docker`), which only the Turnstone nodes can reach. The agent never gets the host's Docker socket. Leftover test containers are removed nightly.
+
+GitHub access is split so that every write needs approval:
+
+| Token (on geerlingbot) | Type | Where it goes | Can |
+| --- | --- | --- | --- |
+| Read | Fine-grained, public repositories, no permissions | `turnstone_github_read_token` in `config.yml` (used by `gh` in bash) | Read public repos, at the authenticated rate limit |
+| Write | Classic, `public_repo` scope | GitHub MCP server in the dashboard | Fork, push to its forks, comment, open PRs |
+
+The write token has to be a classic token: fine-grained tokens can't comment on or open PRs against repos the account doesn't own.
+
+Set it up:
+
+  1. Add the read token to `config.yml` and run the playbook.
+  2. Under **Extensions → MCP Servers**, add (or edit) a server named `github`: Streamable HTTP, URL `https://api.githubcopilot.com/mcp/`, auth **Static headers**:
+
+     ```
+     Authorization: Bearer <write token>
+     X-MCP-Tools: get_file_contents,issue_read,pull_request_read,search_issues,add_issue_comment,fork_repository,create_branch,push_files,create_pull_request
+     ```
+
+     `X-MCP-Tools` limits the server to those tools, so there's no merge or delete tool for the model to call.
+  3. Under **Governance → Policies**, set `mcp__github__get_file_contents`, `mcp__github__issue_read`, `mcp__github__pull_request_read`, and `mcp__github__search_issues` to `allow`. Leave the rest on `ask`.
+  4. Under **Skills → Discover → Import from GitHub**, import `skills/ansible-role-pr` from this repository.
+
+Then ask Turnstone something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
 
 ## Monitoring
 

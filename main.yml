@@ -147,20 +147,68 @@
         - { key: WORKSPACE_MOUNT, value: "{{ turnstone_workspace_dir }}" }
       register: turnstone_env
 
-    - name: Configure the number of Turnstone nodes.
+    - name: Configure the GitHub token for gh.
+      ansible.builtin.lineinfile:
+        path: "{{ turnstone_install_dir }}/.env"
+        regexp: "^GH_TOKEN="
+        line: "GH_TOKEN={{ turnstone_github_read_token }}"
+      register: turnstone_env_gh
+      no_log: true
+
+    - name: Configure Turnstone nodes and the Molecule Docker daemon.
       ansible.builtin.template:
         src: templates/turnstone-compose.override.yaml.j2
         dest: "{{ turnstone_install_dir }}/compose.override.yaml"
         mode: "0644"
       register: turnstone_override
 
-    - name: Build and start Turnstone.
+    - name: Build the Turnstone image.
+      community.docker.docker_image_build:
+        name: turnstone:local
+        path: "{{ turnstone_install_dir }}"
+        rebuild: "{{ 'always' if turnstone_git is changed else 'never' }}"
+      register: turnstone_image
+      become: true
+
+    - name: Ensure the Turnstone tools directory exists.
+      ansible.builtin.file:
+        path: "{{ turnstone_tools_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Configure the Turnstone tools image.
+      ansible.builtin.template:
+        src: templates/turnstone-tools.Dockerfile.j2
+        dest: "{{ turnstone_tools_dir }}/Dockerfile"
+        mode: "0644"
+      register: turnstone_tools_dockerfile
+
+    - name: Build the Turnstone tools image (Turnstone plus gh, Docker CLI, and Molecule).
+      community.docker.docker_image_build:
+        name: turnstone-tools:local
+        path: "{{ turnstone_tools_dir }}"
+        rebuild: "{{ 'always' if (turnstone_image is changed or turnstone_tools_dockerfile is changed) else 'never' }}"
+      become: true
+
+    - name: Start Turnstone.
       community.docker.docker_compose_v2:
         project_src: "{{ turnstone_install_dir }}"
-        build: "{{ 'always' if turnstone_git is changed else 'policy' }}"
-        recreate: "{{ 'always' if (turnstone_env is changed or turnstone_override is changed) else 'auto' }}"
+        build: never
+        recreate: >-
+          {{ 'always' if (turnstone_env is changed or turnstone_env_gh is changed
+             or turnstone_override is changed) else 'auto' }}
         remove_orphans: true
         state: present
+      become: true
+
+    - name: Clear out leftover Molecule containers nightly.
+      ansible.builtin.cron:
+        name: molecule cleanup
+        minute: "30"
+        hour: "4"
+        job: >-
+          docker exec turnstone-docker-1 sh -c
+          'docker ps -aq | xargs -r docker rm -f; docker system prune -f --volumes' > /dev/null
       become: true
 
     - name: Wait for the Turnstone dashboard to respond.

@@ -1,0 +1,23 @@
+# {{ ansible_managed }}
+FROM turnstone:local
+
+USER root
+
+# Docker CLI (for Molecule) and gh, from their upstream apt repos.
+RUN . /etc/os-release \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list \
+    && echo "deb [signed-by=/etc/apt/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends docker-ce-cli gh \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN uv venv --python /usr/local/bin/python3 /opt/ansible \
+    && uv pip install --python /opt/ansible/bin/python {{ turnstone_tools_pip_packages | map('quote') | join(' ') }}
+
+# Appended so Turnstone's own python stays first.
+ENV PATH="$PATH:/opt/ansible/bin"
+
+USER turnstone
