@@ -1,7 +1,7 @@
 ---
 name: github-pr
 description: Use when asked to review, fix, test, comment on, or open a pull request or issue on a GitHub repository, e.g. "test https://github.com/geerlingguy/ansible-role-ntp/pull/152" or "fix the failing CI in geerlingguy/ansible-for-devops and open a PR". Covers checking out the code, running its CI tests locally in Docker, cleanup, and posting comments or PRs as geerlingbot.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # GitHub PRs
@@ -40,6 +40,10 @@ After any failed or interrupted Molecule run, run `molecule destroy`. Remove any
 Report back to Jeff with the test results and a short summary of the changes, then ask whether to post.
 
 - **Comment on an issue or PR**: `mcp__github__add_issue_comment` (PRs are issues). Keep it short: what you tested, what failed, the fix you suggest.
-- **Open a PR**: `mcp__github__fork_repository` (once per repo, into `geerlingbot`), `mcp__github__create_branch` on the fork, `mcp__github__push_files` with every changed file, then `mcp__github__create_pull_request` against the upstream default branch with head `geerlingbot:<branch>`.
+- **Open a PR**:
+  1. `mcp__github__fork_repository` for `<owner>/<repo>`. The fork is always `geerlingbot/<repo>`; forking takes a few seconds, so wait until `gh repo view geerlingbot/<repo>` succeeds. Skip this if the fork already exists.
+  2. `mcp__github__create_branch` on `geerlingbot/<repo>`. Never on the upstream repo, which geerlingbot can't write to (GitHub answers 404).
+  3. `mcp__github__push_files` to that branch with every changed file.
+  4. `mcp__github__create_pull_request` on `<owner>/<repo>`, base its default branch, head `geerlingbot:<branch>`.
 
 You can't push to someone else's PR branch. To change an existing PR, open a new PR from your fork, or suggest the change in a comment.
