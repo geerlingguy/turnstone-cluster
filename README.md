@@ -76,22 +76,14 @@ Set it up:
 
      ```
      Authorization: Bearer <write token>
-     X-MCP-Tools: get_file_contents,issue_read,pull_request_read,search_issues,add_issue_comment,fork_repository,create_branch,push_files,create_pull_request
+     X-MCP-Tools: add_issue_comment,fork_repository,create_branch,push_files,create_pull_request
      ```
 
-     `X-MCP-Tools` limits the server to those tools, so there's no merge or delete tool for the model to call.
-  3. Under **Governance → Policies**, add these **Allow** policies for the read tools (patterns are `fnmatch` globs, so no `{a,b}`):
-
-     | Name | Pattern |
-     | --- | --- |
-     | GitHub reads | `mcp__github__*_read` |
-     | GitHub file contents | `mcp__github__get_file_contents` |
-     | GitHub search | `mcp__github__search_issues` |
-
-     Don't allow `mcp__github__*`, which would auto-approve comments and PRs. Write tools need no policy, since MCP tools ask by default. If Smart Approvals is on, its judge can clear `ask` calls without you, so turn it off if you want to see every write yourself.
+     `X-MCP-Tools` limits the server to those write tools: no merge or delete, and no read tools, so the model reads by cloning and using `gh` instead of pulling files one at a time into its context.
+  3. Leave the GitHub tools without a policy, so every call asks first. If Smart Approvals is on, its judge can clear `ask` calls without you, so turn it off if you want to see every write yourself.
   4. Under **Skills → Discover → Import from GitHub**, paste `https://github.com/geerlingguy/turnstone-cluster/tree/master/skills/github-pr`.
 
-Then ask Turnstone something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
+Skills only load when asked for, so start the workstream with `/skill github-pr`, then ask something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
 
 ## Monitoring
 
