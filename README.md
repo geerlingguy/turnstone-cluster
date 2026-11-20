@@ -80,7 +80,15 @@ Set it up:
      ```
 
      `X-MCP-Tools` limits the server to those tools, so there's no merge or delete tool for the model to call.
-  3. Under **Governance → Policies**, set `mcp__github__get_file_contents`, `mcp__github__issue_read`, `mcp__github__pull_request_read`, and `mcp__github__search_issues` to `allow`. Leave the rest on `ask`.
+  3. Under **Governance → Policies**, add these **Allow** policies for the read tools (patterns are `fnmatch` globs, so no `{a,b}`):
+
+     | Name | Pattern |
+     | --- | --- |
+     | GitHub reads | `mcp__github__*_read` |
+     | GitHub file contents | `mcp__github__get_file_contents` |
+     | GitHub search | `mcp__github__search_issues` |
+
+     Don't allow `mcp__github__*`, which would auto-approve comments and PRs. Write tools need no policy, since MCP tools ask by default. If Smart Approvals is on, its judge can clear `ask` calls without you, so turn it off if you want to see every write yourself.
   4. Under **Skills → Discover → Import from GitHub**, import `skills/github-pr` from this repository.
 
 Then ask Turnstone something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
