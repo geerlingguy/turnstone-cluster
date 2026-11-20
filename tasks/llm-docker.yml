@@ -5,6 +5,7 @@
     name:
       - docker.io
       - docker-compose-v2
+      - docker-buildx
     state: present
   become: true
   when: llm_install_docker | bool
