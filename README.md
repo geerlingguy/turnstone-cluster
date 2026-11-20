@@ -89,7 +89,7 @@ Set it up:
      | GitHub search | `mcp__github__search_issues` |
 
      Don't allow `mcp__github__*`, which would auto-approve comments and PRs. Write tools need no policy, since MCP tools ask by default. If Smart Approvals is on, its judge can clear `ask` calls without you, so turn it off if you want to see every write yourself.
-  4. Under **Skills → Discover → Import from GitHub**, import `skills/github-pr` from this repository.
+  4. Under **Skills → Discover → Import from GitHub**, paste `https://github.com/geerlingguy/turnstone-cluster/tree/master/skills/github-pr`.
 
 Then ask Turnstone something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
 
