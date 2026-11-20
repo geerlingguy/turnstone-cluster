@@ -15,6 +15,18 @@ turnstone_workspace_repos:
     repo: https://github.com/geerlingguy/jeffgeerling-com.git
     sparse_paths:
       - /content/**/*.md
+# Tools for the PR workflow, added to the node image.
+turnstone_tools_dir: "{{ ansible_facts['user_dir'] }}/turnstone-tools"
+turnstone_tools_pip_packages:
+  - ansible
+  - ansible-lint
+  - molecule
+  - molecule-plugins[docker]
+  - yamllint
+# Docker daemon (Docker-in-Docker) the nodes use for Molecule.
+turnstone_docker_image: docker:29-dind
+# Read-only token for gh; GitHub writes go through the GitHub MCP server.
+turnstone_github_read_token: ""
 
 # LLM servers (the 'ai_nodes' group).
 llm_api_key: ""

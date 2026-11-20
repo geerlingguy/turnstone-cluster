@@ -1,12 +1,43 @@
 # {{ ansible_managed }}
 # Nodes above node-{{ turnstone_node_count }} use the 'extra' profile.
 # docker compose --profile extra up -d  # start all 10
-{% if turnstone_node_count | int < 10 %}
 services:
-{% for n in range(turnstone_node_count | int + 1, 11) %}
+{% for n in range(1, 11) %}
   node-{{ n }}:
+{% if n > turnstone_node_count | int %}
     profiles: ["extra"]
-{% endfor %}
-{% else %}
-services: {}
 {% endif %}
+    # Built by the playbook from templates/turnstone-tools.Dockerfile.j2.
+    image: turnstone-tools:local
+    build: !reset null
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+      GH_TOKEN: ${GH_TOKEN:-}
+    networks:
+      - turnstone-docker
+{% endfor %}
+
+  # Docker daemon for Molecule, reachable only from the nodes.
+  docker:
+    image: {{ turnstone_docker_image }}
+    privileged: true
+    # No TLS; the turnstone-docker network is internal to the nodes.
+    command: ["--tls=false"]
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - docker-data:/var/lib/docker
+      # Same path as in the nodes, so bind mounts in test scripts work.
+      - ${WORKSPACE_MOUNT:-workspace}:/workspace
+    networks:
+      - turnstone-docker
+      - docker-egress
+    restart: unless-stopped
+
+networks:
+  turnstone-docker:
+    internal: true
+  docker-egress:
+
+volumes:
+  docker-data:
