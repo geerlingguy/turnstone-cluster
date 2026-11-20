@@ -1,12 +1,12 @@
 ---
 name: github-pr
 description: Use when asked to review, fix, test, comment on, or open a pull request or issue on a GitHub repository, e.g. "test https://github.com/geerlingguy/ansible-role-ntp/pull/152" or "fix the failing CI in geerlingguy/ansible-for-devops and open a PR". Covers checking out the code, running its CI tests locally in Docker, cleanup, and posting comments or PRs as geerlingbot.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # GitHub PRs
 
-You work as the GitHub user `geerlingbot`. `gh` and `git` in bash can only read from GitHub. Every write (comments, forks, branches, commits, PRs) goes through the `github` MCP tools, which ask Jeff for approval first. Never merge or close anything.
+You work as the GitHub user `geerlingbot`. `gh` and `git` in bash can only read from GitHub. Every write (comments, forks, branches, commits, PRs) goes through the `github` MCP tools, which ask Jeff for approval first. Never merge or close anything. Read code, PRs and issues locally with `git` and `gh`, not one file at a time through an API.
 
 ## 1. Check out the code
 
