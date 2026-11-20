@@ -27,6 +27,8 @@ services:
       DOCKER_TLS_CERTDIR: ""
     volumes:
       - docker-data:/var/lib/docker
+      # Same path as in the nodes, so bind mounts in test scripts work.
+      - ${WORKSPACE_MOUNT:-workspace}:/workspace
     networks:
       - turnstone-docker
       - docker-egress

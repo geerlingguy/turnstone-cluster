@@ -15,7 +15,8 @@ RUN . /etc/os-release \
     && rm -rf /var/lib/apt/lists/*
 
 RUN uv venv --python /usr/local/bin/python3 /opt/ansible \
-    && uv pip install --python /opt/ansible/bin/python {{ turnstone_tools_pip_packages | map('quote') | join(' ') }}
+    && uv pip install --python /opt/ansible/bin/python {{ turnstone_tools_pip_packages | map('quote') | join(' ') }} \
+    && chown -R turnstone:turnstone /opt/ansible
 
 # Appended so Turnstone's own python stays first.
 ENV PATH="$PATH:/opt/ansible/bin"

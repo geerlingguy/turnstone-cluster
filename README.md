@@ -56,7 +56,7 @@ To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the da
 
 ## PR workflow
 
-Turnstone can check out a PR on one of my Ansible roles, change it, run its Molecule tests, and comment or open a PR as the [geerlingbot](https://github.com/geerlingbot) account, with my approval before anything is posted.
+Turnstone can check out a PR (or start a new change) on a GitHub repo, change it, run its tests the way its CI does (including Molecule, or `docker run` test scripts), and comment or open a PR as the [geerlingbot](https://github.com/geerlingbot) account, with my approval before anything is posted.
 
 Molecule runs in a privileged Docker-in-Docker container (`docker`), which only the Turnstone nodes can reach. The agent never gets the host's Docker socket. Leftover test containers are removed nightly.
 
@@ -81,7 +81,7 @@ Set it up:
 
      `X-MCP-Tools` limits the server to those tools, so there's no merge or delete tool for the model to call.
   3. Under **Governance → Policies**, set `mcp__github__get_file_contents`, `mcp__github__issue_read`, `mcp__github__pull_request_read`, and `mcp__github__search_issues` to `allow`. Leave the rest on `ask`.
-  4. Under **Skills → Discover → Import from GitHub**, import `skills/ansible-role-pr` from this repository.
+  4. Under **Skills → Discover → Import from GitHub**, import `skills/github-pr` from this repository.
 
 Then ask Turnstone something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
 
