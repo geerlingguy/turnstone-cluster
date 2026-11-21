@@ -64,7 +64,7 @@ GitHub access is split so that anything other people see needs approval:
 
 | Token (on geerlingbot) | Type | Where it goes | Can |
 | --- | --- | --- | --- |
-| Bot | Fine-grained, **All repositories** (owned by geerlingbot), **Contents** and **Workflows** read and write | `turnstone_github_token` in `config.yml` (used by `gh` and `git` in bash) | Read public repos; sync, branch, and push (including force-push) to geerlingbot's forks, without asking |
+| Bot | Fine-grained, **All repositories** (owned by geerlingbot), **Contents** and **Workflows** read and write | `turnstone_github_token` in `config.yml` (written to gh's `hosts.yml` for `gh` and `git` in bash) | Read public repos; sync, branch, and push (including force-push) to geerlingbot's forks, without asking |
 | Write | Classic, `public_repo` scope | GitHub MCP server in the dashboard | Fork, comment, open PRs, each after approval |
 
 The write token has to be a classic token: fine-grained tokens can't comment on or open PRs against repos the account doesn't own. A push to a branch with an open PR updates that PR without asking; nothing new gets posted upstream without approval.
