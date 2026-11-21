@@ -151,7 +151,7 @@
       ansible.builtin.lineinfile:
         path: "{{ turnstone_install_dir }}/.env"
         regexp: "^GH_TOKEN="
-        line: "GH_TOKEN={{ turnstone_github_read_token }}"
+        line: "GH_TOKEN={{ turnstone_github_token }}"
       register: turnstone_env_gh
       no_log: true
 

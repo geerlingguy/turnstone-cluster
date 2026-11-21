@@ -25,8 +25,10 @@ turnstone_tools_pip_packages:
   - yamllint
 # Docker daemon (Docker-in-Docker) the nodes use for Molecule.
 turnstone_docker_image: docker:29-dind
-# Read-only token for gh; GitHub writes go through the GitHub MCP server.
-turnstone_github_read_token: ""
+# geerlingbot token for gh and git; comments and PRs go through the GitHub MCP server.
+turnstone_github_token: ""
+turnstone_git_name: geerlingbot
+turnstone_git_email: ""
 
 # LLM servers (the 'ai_nodes' group).
 llm_api_key: ""

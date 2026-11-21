@@ -60,23 +60,23 @@ Turnstone can check out a PR (or start a new change) on a GitHub repo, change it
 
 Molecule runs in a privileged Docker-in-Docker container (`docker`), which only the Turnstone nodes can reach. The agent never gets the host's Docker socket. Leftover test containers are removed nightly.
 
-GitHub access is split so that every write needs approval:
+GitHub access is split so that anything other people see needs approval:
 
 | Token (on geerlingbot) | Type | Where it goes | Can |
 | --- | --- | --- | --- |
-| Read | Fine-grained, public repositories, no permissions | `turnstone_github_read_token` in `config.yml` (used by `gh` in bash) | Read public repos, at the authenticated rate limit |
-| Write | Classic, `public_repo` scope | GitHub MCP server in the dashboard | Fork, push to its forks, comment, open PRs |
+| Bot | Fine-grained, **All repositories** (owned by geerlingbot), **Contents** and **Workflows** read and write | `turnstone_github_token` in `config.yml` (used by `gh` and `git` in bash) | Read public repos; sync, branch, and push (including force-push) to geerlingbot's forks, without asking |
+| Write | Classic, `public_repo` scope | GitHub MCP server in the dashboard | Fork, comment, open PRs, each after approval |
 
-The write token has to be a classic token: fine-grained tokens can't comment on or open PRs against repos the account doesn't own.
+The write token has to be a classic token: fine-grained tokens can't comment on or open PRs against repos the account doesn't own. A push to a branch with an open PR updates that PR without asking; nothing new gets posted upstream without approval.
 
 Set it up:
 
-  1. Add the read token to `config.yml` and run the playbook.
+  1. Add the bot token and `turnstone_git_email` (geerlingbot's noreply address from its GitHub email settings) to `config.yml` and run the playbook.
   2. Under **Extensions → MCP Servers**, add (or edit) a server named `github`: Streamable HTTP, URL `https://api.githubcopilot.com/mcp/`, auth **Static headers**:
 
      ```
      Authorization: Bearer <write token>
-     X-MCP-Tools: add_issue_comment,fork_repository,create_branch,push_files,create_pull_request
+     X-MCP-Tools: add_issue_comment,fork_repository,create_pull_request
      ```
 
      `X-MCP-Tools` limits the server to those write tools: no merge or delete, and no read tools, so the model reads by cloning and using `gh` instead of pulling files one at a time into its context.

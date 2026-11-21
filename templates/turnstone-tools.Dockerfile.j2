@@ -18,6 +18,11 @@ RUN uv venv --python /usr/local/bin/python3 /opt/ansible \
     && uv pip install --python /opt/ansible/bin/python {{ turnstone_tools_pip_packages | map('quote') | join(' ') }} \
     && chown -R turnstone:turnstone /opt/ansible
 
+# git authenticates with GH_TOKEN through gh.
+RUN git config --system credential.https://github.com.helper '!gh auth git-credential' \
+    && git config --system user.name {{ turnstone_git_name | quote }} \
+    && git config --system user.email {{ turnstone_git_email | quote }}
+
 # Appended so Turnstone's own python stays first.
 ENV PATH="$PATH:/opt/ansible/bin"
 
