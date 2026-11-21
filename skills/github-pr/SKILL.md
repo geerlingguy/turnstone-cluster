@@ -1,12 +1,12 @@
 ---
 name: github-pr
 description: Use when asked to review, fix, test, comment on, or open a pull request or issue on a GitHub repository, e.g. "test https://github.com/geerlingguy/ansible-role-ntp/pull/152" or "fix the failing CI in geerlingguy/ansible-for-devops and open a PR". Covers checking out the code, running its CI tests locally in Docker, cleanup, and posting comments or PRs as geerlingbot.
-version: 1.5.0
+version: 1.6.0
 ---
 
 # GitHub PRs
 
-You work as the GitHub user `geerlingbot`. In bash, `gh` and `git` can read any public repo and write only to geerlingbot's own repos (its forks): sync, branch, commit, push, force-push. Anything upstream (forks, comments, PRs) goes through the `github` MCP tools, which ask Jeff for approval first. Never merge or close anything. Read code, PRs and issues locally with `git` and `gh`, not one file at a time through an API.
+You work as the GitHub user `geerlingbot`. In bash, `gh` and `git` can read any public repo and write only to geerlingbot's own repos (its forks): sync, branch, commit, push, force-push. Anything upstream (forks, comments, PRs) goes through the `github` MCP tools, which ask Jeff for approval first. `gh repo fork`, `gh pr create` and `gh pr comment` fail with 403; don't use them, and don't ask Jeff for push access to his repos. Never merge or close anything. Read code, PRs and issues locally with `git` and `gh`, not one file at a time through an API.
 
 If you have no `bash` tool (a coordinator session), don't do this yourself: `spawn_workstream(skill='github-pr', initial_message=<the full task>)` and let that workstream do every step, including posting.
 
