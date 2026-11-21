@@ -1,7 +1,7 @@
 ---
 name: github-pr
 description: Use when asked to review, fix, test, comment on, or open a pull request or issue on a GitHub repository, e.g. "test https://github.com/geerlingguy/ansible-role-ntp/pull/152" or "fix the failing CI in geerlingguy/ansible-for-devops and open a PR". Covers checking out the code, running its CI tests locally in Docker, cleanup, and posting comments or PRs as geerlingbot.
-version: 1.6.0
+version: 1.7.0
 ---
 
 # GitHub PRs
@@ -41,7 +41,7 @@ After any failed or interrupted Molecule run, run `molecule destroy`. Remove any
 
 Report back to Jeff with the test results and a short summary of the changes, then ask whether to post.
 
-- **Comment on an issue or PR**: `mcp__github__add_issue_comment` (PRs are issues). Keep it short: what you tested, what failed, the fix you suggest.
+- **Comment on an issue or PR**: `mcp__github__add_issue_comment` (PRs are issues). Fix your own comment with `mcp__github__update_issue_comment`. Keep it short: what you tested, what failed, the fix you suggest.
 - **Open a PR**:
   1. If `geerlingbot/<repo>` doesn't exist, `mcp__github__fork_repository` for `<owner>/<repo>`, then wait until `gh repo view geerlingbot/<repo>` succeeds.
   2. Sync the fork: `gh repo sync geerlingbot/<repo>`.
@@ -49,5 +49,7 @@ Report back to Jeff with the test results and a short summary of the changes, th
   4. `mcp__github__create_pull_request` on `<owner>/<repo>`, base its default branch, head `geerlingbot:<branch>`.
 
 After one of your PRs is merged, sync the fork (`gh repo sync geerlingbot/<repo>`) before starting anything else on that repo. If your PR branch conflicts with upstream, sync the fork, rebase onto it, and `git push --force-with-lease fork <branch>`.
+
+To change the title or description of one of your PRs, use `mcp__github__update_pull_request` (only `title` and `body`; never `state` or `base`).
 
 You can't push to someone else's PR branch. To change an existing PR, open a new PR from your fork, or suggest the change in a comment.
