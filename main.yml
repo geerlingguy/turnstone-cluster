@@ -147,14 +147,6 @@
         - { key: WORKSPACE_MOUNT, value: "{{ turnstone_workspace_dir }}" }
       register: turnstone_env
 
-    - name: Configure the GitHub token for gh.
-      ansible.builtin.lineinfile:
-        path: "{{ turnstone_install_dir }}/.env"
-        regexp: "^GH_TOKEN="
-        line: "GH_TOKEN={{ turnstone_github_token }}"
-      register: turnstone_env_gh
-      no_log: true
-
     - name: Configure Turnstone nodes and the Molecule Docker daemon.
       ansible.builtin.template:
         src: templates/turnstone-compose.override.yaml.j2
@@ -176,6 +168,28 @@
         state: directory
         mode: "0755"
 
+    # Turnstone strips *_TOKEN vars from bash, so gh gets its login from a file.
+    - name: Ensure the gh config directory exists.
+      ansible.builtin.file:
+        path: "{{ turnstone_tools_dir }}/gh"
+        state: directory
+        owner: "1000"  # turnstone user in the image
+        mode: "0700"
+      become: true
+
+    - name: Configure the gh login.
+      ansible.builtin.template:
+        src: "templates/gh-{{ item.name }}.yml.j2"
+        dest: "{{ turnstone_tools_dir }}/gh/{{ item.name }}.yml"
+        owner: "1000"
+        mode: "0600"
+        force: "{{ item.force }}"
+      loop:
+        - { name: hosts, force: true }
+        - { name: config, force: false }
+      no_log: true
+      become: true
+
     - name: Configure the Turnstone tools image.
       ansible.builtin.template:
         src: templates/turnstone-tools.Dockerfile.j2
@@ -195,8 +209,7 @@
         project_src: "{{ turnstone_install_dir }}"
         build: never
         recreate: >-
-          {{ 'always' if (turnstone_env is changed or turnstone_env_gh is changed
-             or turnstone_override is changed) else 'auto' }}
+          {{ 'always' if (turnstone_env is changed or turnstone_override is changed) else 'auto' }}
         remove_orphans: true
         state: present
       become: true

@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+github.com:
+    users:
+        {{ turnstone_git_name }}:
+            oauth_token: {{ turnstone_github_token }}
+    git_protocol: https
+    user: {{ turnstone_git_name }}
+    oauth_token: {{ turnstone_github_token }}

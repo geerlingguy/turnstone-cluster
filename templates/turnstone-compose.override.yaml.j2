@@ -12,7 +12,8 @@ services:
     build: !reset null
     environment:
       DOCKER_HOST: tcp://docker:2375
-      GH_TOKEN: ${GH_TOKEN:-}
+    volumes:
+      - {{ turnstone_tools_dir }}/gh:/home/turnstone/.config/gh
     networks:
       - turnstone-docker
 {% endfor %}
