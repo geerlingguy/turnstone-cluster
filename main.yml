@@ -147,6 +147,17 @@
         - { key: WORKSPACE_MOUNT, value: "{{ turnstone_workspace_dir }}" }
       register: turnstone_env
 
+    - name: Configure the Discord bot.
+      ansible.builtin.lineinfile:
+        path: "{{ turnstone_install_dir }}/.env"
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      loop:
+        - { key: TURNSTONE_DISCORD_TOKEN, value: "{{ turnstone_discord_token }}" }
+        - { key: TURNSTONE_DISCORD_GUILD, value: "{{ turnstone_discord_guild }}" }
+      register: turnstone_discord_env
+      no_log: true
+
     - name: Configure Turnstone nodes and the Molecule Docker daemon.
       ansible.builtin.template:
         src: templates/turnstone-compose.override.yaml.j2
@@ -209,7 +220,7 @@
         project_src: "{{ turnstone_install_dir }}"
         build: never
         recreate: >-
-          {{ 'always' if (turnstone_env is changed or turnstone_override is changed) else 'auto' }}
+          {{ 'always' if (turnstone_env is changed or turnstone_discord_env is changed or turnstone_override is changed) else 'auto' }}
         remove_orphans: true
         state: present
       become: true

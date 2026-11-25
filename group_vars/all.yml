@@ -29,6 +29,9 @@ turnstone_docker_image: docker:29-dind
 turnstone_github_token: ""
 turnstone_git_name: geerlingbot
 turnstone_git_email: ""
+# Discord bot for Turnstone's channel gateway; disabled while the token is empty.
+turnstone_discord_token: ""
+turnstone_discord_guild: 0  # 0 allows every server the bot is in.
 
 # LLM servers (the 'ai_nodes' group).
 llm_api_key: ""
