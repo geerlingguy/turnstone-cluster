@@ -26,6 +26,10 @@
   become: true
   when: llm_install_docker | bool
 
+- name: Set up the NVIDIA driver and container toolkit.
+  ansible.builtin.include_tasks: tasks/nvidia.yml
+  when: llm_gpu_vendor == 'nvidia' and llm_install_nvidia | bool
+
 # Containers don't have the host's group names, so pass GIDs instead.
 - name: Look up GPU group IDs.
   ansible.builtin.getent:

@@ -7,11 +7,12 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 | Host | Hardware | Role | Model | Runtime |
 | --- | --- | --- | --- | --- |
 | `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | Turnstone + LLM | `qwen3.8-27b-r9700` | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
+| `dell-precision.local` | Dell Pro Precision 9 T4, Xeon 698X, 256 GB, 2x RTX PRO 6000 Blackwell Max-Q (Ubuntu) | LLM | `glm-5.3-flash` | vLLM (Docker) |
 
 The playbook (`main.yml`) has four plays:
 
   1. **Security**: Applies [`geerlingguy.security`](https://github.com/geerlingguy/ansible-role-security) to every node (SSH keys only, no root login, fail2ban, automatic security updates), and [`geerlingguy.firewall`](https://github.com/geerlingguy/ansible-role-firewall) (iptables; replaces ufw and firewalld). SSH and mDNS are open to all; everything else only to `firewall_allowed_networks` (your LAN by default).
-  2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node (installing Docker if needed). Per-node model settings live in `host_vars/`.
+  2. **AI nodes**: Sets up an OpenAI-compatible LLM server on port 8000 on each node (installing Docker, and on Ubuntu NVIDIA nodes the NVIDIA driver and container toolkit, if needed). Per-node model settings live in `host_vars/`.
   3. **Turnstone node**: Checks out Turnstone, generates its secrets, maps its workspace to `~/turnstone-workspace`, and runs it with Docker Compose. Repos in `turnstone_workspace_repos` (by default, just the Markdown from my blog) are cloned into the workspace and pulled every 6 hours. Nodes run a `turnstone-tools:local` image with `gh`, the Docker CLI, Ansible, and Molecule added, and a Docker-in-Docker sidecar runs Molecule's test containers. See [PR workflow](#pr-workflow). The dashboard is served on port 443.
   4. **Monitoring**: Installs `node_exporter` (CPU, RAM, AMD GPUs) and `nvidia_gpu_exporter` (NVIDIA GPUs) on every node, and runs Prometheus (30 days of history) and Grafana on the Turnstone node. See [Monitoring](#monitoring).
 
@@ -20,6 +21,7 @@ The playbook (`main.yml`) has four plays:
   1. Install Ansible on your computer: `pip3 install ansible`
   2. Install an OS on each node:
      - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
+     - **Dell Precision**: Ubuntu 26.04 LTS. The playbook installs Docker, the NVIDIA driver, and the NVIDIA container toolkit, then reboots, and sets the node to boot to the console: GLM-5.3-Flash fills each GPU to within a few MiB, leaving no room for a desktop. After any hardware change, POST can take 45+ minutes with no video; wait it out.
   3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins.
   4. Clone this repository and install the required roles and collections:
 
@@ -44,9 +46,9 @@ The playbook (`main.yml`) has four plays:
      ansible-playbook main.yml -K
      ```
 
-     First runs take a long time: models are downloaded before the LLM servers start. To set up just one node, use `--limit`, e.g. `--limit ai-server.mmoffice.net`.
+     First runs take a long time: models are downloaded before the LLM servers start (GLM-5.3-Flash is 179 GiB; set `hf_token` in `config.yml` for faster downloads). To set up just one node, use `--limit`, e.g. `--limit ai-server.mmoffice.net`.
 
-  9. Open the Turnstone dashboard at `https://ai-server.mmoffice.net` and log in. Then, under **System → Models**, add the model using the alias, base URL, and concurrency printed at the end of the playbook run, and make it the default (Settings → Model → `default_alias`). Leave the roles empty so they use the default.
+  9. Open the Turnstone dashboard at `https://ai-server.mmoffice.net` and log in. Then, under **System → Models**, add each model using the alias, base URL, and concurrency printed at the end of the playbook run. Make `qwen3.8-27b-r9700` the default (Settings → Model → `default_alias`), and leave the roles empty so they use the default.
 
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 

@@ -46,6 +46,8 @@ llm_metrics_type: vllm  # vllm or radiance (for monitoring).
 # LLM server in Docker (llm_runtime: docker).
 llm_install_docker: false  # DGX OS ships with Docker.
 llm_gpu_vendor: nvidia  # nvidia or amd.
+llm_install_nvidia: false  # DGX OS ships with the driver and container toolkit.
+llm_headless: false  # Boot to the console, freeing the GPU memory a desktop uses.
 llm_docker_dir: /opt/llm
 llm_shm_size: ""
 llm_container_name: vllm
