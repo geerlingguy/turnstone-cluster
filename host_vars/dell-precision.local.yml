@@ -17,6 +17,8 @@ llm_health_timeout_minutes: 240
 llm_container_image: vllm/vllm-openai:nightly@sha256:8e6e3752946ff2dde451b313cbaec2ea8e7b52221b21bfbcf53fb68dd4f4c42e
 llm_container_env:
   HF_TOKEN: "{{ hf_token | default('', true) }}"
+  # Without this, fragmentation runs the cards out of memory during startup.
+  PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
 # Mount all of /root/.cache so kernel compile caches persist too.
 llm_container_volumes:
   - glm-cache:/root/.cache
