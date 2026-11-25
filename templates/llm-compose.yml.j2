@@ -28,7 +28,7 @@ services:
 {% if command %}
     command:
 {% for arg in command %}
-      - "{{ arg }}"
+      - {{ arg | string | to_json }}
 {% endfor %}
 {% endif %}
 {% if llm_gpu_vendor == 'amd' %}

@@ -1,0 +1,49 @@
+---
+# NVIDIA driver and container toolkit on Ubuntu (DGX OS ships with both).
+- name: Ensure ubuntu-drivers is installed.
+  ansible.builtin.apt:
+    name: ubuntu-drivers-common
+    state: present
+  become: true
+
+- name: Install the recommended NVIDIA driver.
+  ansible.builtin.command:
+    cmd: ubuntu-drivers install
+    creates: /usr/bin/nvidia-smi
+  become: true
+  notify: Reboot to load the NVIDIA driver
+
+- name: Add NVIDIA's container toolkit repository.
+  ansible.builtin.deb822_repository:
+    name: nvidia-container-toolkit
+    uris: "https://nvidia.github.io/libnvidia-container/stable/deb/{{ monitoring_arch }}"
+    suites: /
+    signed_by: https://nvidia.github.io/libnvidia-container/gpgkey
+  become: true
+
+- name: Install the NVIDIA container toolkit.
+  ansible.builtin.apt:
+    name: nvidia-container-toolkit
+    state: present
+    update_cache: true
+  become: true
+
+- name: Configure Docker to use the NVIDIA runtime.
+  ansible.builtin.command:
+    cmd: nvidia-ctk runtime configure --runtime=docker
+    creates: /etc/docker/daemon.json
+  become: true
+  notify: Restart Docker
+
+# A desktop session uses GPU memory that tightly-packed models need.
+- name: Boot to the console instead of the desktop.
+  ansible.builtin.file:
+    src: /usr/lib/systemd/system/multi-user.target
+    dest: /etc/systemd/system/default.target
+    state: link
+  when: llm_headless | bool
+  become: true
+  notify: Stop the desktop
+
+- name: Apply NVIDIA changes before starting the LLM server.
+  ansible.builtin.meta: flush_handlers

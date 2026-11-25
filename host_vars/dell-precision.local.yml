@@ -1,0 +1,66 @@
+---
+# GLM-5.3-Flash (320B MoE, 18B active, NVFP4) on 2x RTX PRO 6000 Blackwell
+# Max-Q (TP2), following this checkpoint's 2-card vLLM recipe:
+# https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
+#
+# The weights fill each card to within a few MiB, so the node boots headless.
+llm_runtime: docker
+llm_install_docker: true
+llm_install_nvidia: true
+llm_headless: true
+llm_model_name: glm-5.3-flash
+llm_max_concurrency: 8  # Matches --max-num-seqs below.
+# vLLM downloads the 179 GiB model before it starts.
+llm_health_timeout_minutes: 240
+
+# Stock vLLM 0.30.0 lacks the SM120 kernels this recipe needs.
+llm_container_image: vllm/vllm-openai:nightly@sha256:8e6e3752946ff2dde451b313cbaec2ea8e7b52221b21bfbcf53fb68dd4f4c42e
+llm_container_env:
+  HF_TOKEN: "{{ hf_token | default('', true) }}"
+# Mount all of /root/.cache so kernel compile caches persist too.
+llm_container_volumes:
+  - glm-cache:/root/.cache
+llm_named_volumes:
+  - glm-cache
+llm_container_command:
+  - 12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
+  - --served-model-name
+  - "{{ llm_model_name }}"
+  - --tensor-parallel-size
+  - "2"
+  - --dtype
+  - bfloat16
+  - --quantization
+  - modelopt_mixed
+  - --moe-backend
+  - humming
+  - --attention-backend
+  - FLASHINFER_MLA_SPARSE_SM120
+  - --kv-cache-dtype
+  - fp8_ds_mla
+  # A 4 GiB KV cache runs out of memory during warmup.
+  - --kv-cache-memory-bytes
+  - "2415919104"
+  - --gpu-memory-utilization
+  - "0.98"
+  - --max-model-len
+  - "262144"
+  - --max-num-seqs
+  - "8"
+  - --disable-custom-all-reduce
+  - --no-enforce-eager
+  - --additional-config
+  - '{"kda_prefill_backend": "triton"}'
+  - --kernel-config
+  - '{"enable_flashinfer_autotune": false}'
+  - --compilation-config
+  - '{"mode": 0, "cudagraph_mode": "FULL_DECODE_ONLY", "cudagraph_capture_sizes": [1, 2, 4, 8]}'
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - glm47
+  - --reasoning-parser
+  - glm47
+  - --host
+  - 0.0.0.0
+  - --port
+  - "{{ llm_container_port }}"

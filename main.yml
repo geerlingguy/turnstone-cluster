@@ -33,6 +33,24 @@
   vars_files:
     - config.yml
 
+  handlers:
+    # Some workstations take a long time to POST after a reboot.
+    - name: Reboot to load the NVIDIA driver
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
+      become: true
+
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+      become: true
+
+    - name: Stop the desktop
+      ansible.builtin.command: systemctl isolate multi-user.target  # noqa: command-instead-of-module
+      changed_when: true
+      become: true
+
   tasks:
     - name: Download model weights.
       ansible.builtin.include_tasks: tasks/model-download.yml
