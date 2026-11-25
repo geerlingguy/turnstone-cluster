@@ -51,6 +51,7 @@ The playbook (`main.yml`) has four plays:
      Turn on the **Tools**, **Vision**, **Server-side reasoning parser**, and **Reasoning-effort control** capabilities as appropriate for each model.
 
   10. (Optional) Add integrations in the dashboard: the GitHub MCP server (see [PR workflow](#pr-workflow)), and tool policies under **Governance → Policies** (e.g. allow `web_*`).
+  11. (Optional) Set up the [Discord bot](#discord).
 
 To upgrade Turnstone, change `turnstone_version` in `config.yml` (back up the database first with `docker exec turnstone-postgres-1 sh -c 'pg_dumpall -U "$POSTGRES_USER"' > turnstone-backup-$(date +%F).sql`) and run the playbook again.
 
@@ -84,6 +85,17 @@ Set it up:
   4. Under **Skills → Discover → Import from GitHub**, paste `https://github.com/geerlingguy/turnstone-cluster/tree/master/skills/github-pr`.
 
 Skills only load when asked for, so start the workstream with `/skill github-pr`, then ask something like: "Review https://github.com/geerlingguy/ansible-role-ntp/pull/152 and test it."
+
+## Discord
+
+Turnstone's `channel` gateway (already part of its Compose stack) can run a Discord bot, so I can chat with Turnstone from Discord. @mention the bot (or use `/ask`) and it starts a thread with its own workstream; replies in the thread go to that workstream. Tool approvals show up as Approve/Reject buttons. See Turnstone's [channel docs](https://github.com/turnstonelabs/turnstone/blob/main/docs/channels.md).
+
+Set it up:
+
+  1. In the [Discord developer portal](https://discord.com/developers/applications), create an application (e.g. `geerlingbot`). On the **Bot** tab, reset and copy the token, and turn on **Message Content Intent**.
+  2. Under **OAuth2 → URL Generator**, select the `bot` and `applications.commands` scopes, and the View Channels, Send Messages, Send Messages in Threads, Create Public Threads, Read Message History, Add Reactions, and Embed Links permissions. Open the generated URL to add the bot to your server.
+  3. Set `turnstone_discord_token` and `turnstone_discord_guild` (your server's ID; right-click the server with Developer Mode on → **Copy Server ID**) in `config.yml`, and run the playbook.
+  4. Create an API token for your Turnstone user in the dashboard's admin panel, then run `/link` in Discord and paste it. The bot ignores users who haven't linked.
 
 ## Monitoring
 

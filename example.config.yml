@@ -26,6 +26,11 @@ turnstone_github_token: ""
 # Commit email, e.g. 123456+geerlingbot@users.noreply.github.com.
 turnstone_git_email: ""
 
+# Optional Discord bot token and server (guild) ID, to chat with Turnstone in
+# Discord (see README).
+turnstone_discord_token: ""
+turnstone_discord_guild: 0
+
 # Grafana admin password (the dashboard itself is viewable without logging in).
 # Leave empty to use Grafana's default (admin/admin, changed at first login).
 grafana_admin_password: ""
