@@ -49,6 +49,9 @@ llm_container_command:
   - "262144"
   - --max-num-seqs
   - "8"
+  # Smaller prefill chunks; the 8192 default runs out of memory on long prompts.
+  - --max-num-batched-tokens
+  - "2048"
   - --disable-custom-all-reduce
   - --no-enforce-eager
   - --additional-config
