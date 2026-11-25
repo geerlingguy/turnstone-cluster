@@ -6,8 +6,8 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 
 | Host | Hardware | Role | Model | Runtime |
 | --- | --- | --- | --- | --- |
-| `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | Turnstone + LLM | `qwen3.8-27b-r9700` | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
-| `dell-precision.local` | Dell Pro Precision 9 T4, Xeon 698X, 256 GB, 2x RTX PRO 6000 Blackwell Max-Q (Ubuntu) | LLM | `glm-5.3-flash` | vLLM (Docker) |
+| `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | Turnstone + LLM | [`qwen3.8-27b-r9700`](https://huggingface.co/StillDeadcode/qwen3.8-27b-fp8) | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
+| `dell-precision.local` | Dell Pro Precision 9 T4, Xeon 698X, 256 GB, 2x RTX PRO 6000 Blackwell Max-Q (Ubuntu) | LLM | [`glm-5.3-flash`](https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000) | vLLM (Docker) |
 
 The playbook (`main.yml`) has four plays:
 
