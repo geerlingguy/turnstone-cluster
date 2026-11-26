@@ -1,71 +1,100 @@
 ---
-# GLM-5.3-Flash (320B MoE, 18B active, NVFP4) on 2x RTX PRO 6000 Blackwell
-# Max-Q (TP2), following this checkpoint's 2-card vLLM recipe:
-# https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
-#
-# The weights fill each card to within a few MiB, so the node boots headless.
+# Dell Pro Precision 9 T4 with 2x RTX PRO 6000 Blackwell Max-Q. Runs headless:
+# GLM fills each card to within a few MiB.
 llm_runtime: docker
 llm_install_docker: true
 llm_install_nvidia: true
 llm_headless: true
-llm_model_name: glm-5.3-flash
-llm_max_concurrency: 8  # Matches --max-num-seqs below.
-# vLLM downloads the 179 GiB model before it starts.
+# First starts download the model (GLM is 179 GiB).
 llm_health_timeout_minutes: 240
 
-# Stock vLLM 0.30.0 lacks the SM120 kernels this recipe needs.
+# Which model to serve; see dell_models below.
+dell_model: glm-5.3-flash
+
+llm_model_name: "{{ dell_model }}"
+llm_max_concurrency: "{{ dell_models[dell_model].max_concurrency }}"
+# Stock vLLM 0.30.0 lacks the SM120 kernels GLM needs.
 llm_container_image: vllm/vllm-openai:nightly@sha256:8e6e3752946ff2dde451b313cbaec2ea8e7b52221b21bfbcf53fb68dd4f4c42e
 llm_container_env:
   HF_TOKEN: "{{ hf_token | default('', true) }}"
-  # Without this, fragmentation runs the cards out of memory during startup.
+  # Without this, fragmentation runs GLM out of memory during startup.
   PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
-# Mount all of /root/.cache so kernel compile caches persist too.
+# Each model keeps its own cache (incl. kernel compile caches), so switching
+# back doesn't re-download.
 llm_container_volumes:
-  - glm-cache:/root/.cache
+  - "{{ dell_models[dell_model].volume }}:/root/.cache"
 llm_named_volumes:
-  - glm-cache
-llm_container_command:
-  - 12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
-  - --served-model-name
-  - "{{ llm_model_name }}"
-  - --tensor-parallel-size
-  - "2"
-  - --dtype
-  - bfloat16
-  - --quantization
-  - modelopt_mixed
-  - --moe-backend
-  - humming
-  - --attention-backend
-  - FLASHINFER_MLA_SPARSE_SM120
-  - --kv-cache-dtype
-  - fp8_ds_mla
-  # A 4 GiB KV cache runs out of memory during warmup.
-  - --kv-cache-memory-bytes
-  - "2415919104"
-  - --gpu-memory-utilization
-  - "0.98"
-  - --max-model-len
-  - "262144"
-  - --max-num-seqs
-  - "8"
-  # Smaller prefill chunks; the 8192 default runs out of memory on long prompts.
-  - --max-num-batched-tokens
-  - "2048"
-  - --disable-custom-all-reduce
-  - --no-enforce-eager
-  - --additional-config
-  - '{"kda_prefill_backend": "triton"}'
-  - --kernel-config
-  - '{"enable_flashinfer_autotune": false}'
-  - --compilation-config
-  - '{"mode": 0, "cudagraph_mode": "FULL_DECODE_ONLY", "cudagraph_capture_sizes": [1, 2, 4, 8]}'
-  - --enable-auto-tool-choice
-  - --tool-call-parser
-  - glm47
-  - --reasoning-parser
-  - glm47
-  - --host
-  - 0.0.0.0
-  - --port
-  - "{{ llm_container_port }}"
+  - "{{ dell_models[dell_model].volume }}"
+llm_container_command: >-
+  {{ dell_models[dell_model].command
+     + ['--served-model-name', llm_model_name, '--host', '0.0.0.0', '--port', llm_container_port | string] }}
+
+dell_models:
+  # GLM-5.3-Flash (320B MoE, 18B active, NVFP4) across both GPUs (TP2), from:
+  # https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
+  glm-5.3-flash:
+    max_concurrency: 8  # Matches --max-num-seqs.
+    volume: glm-cache
+    command:
+      - 12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000
+      - --tensor-parallel-size
+      - "2"
+      - --dtype
+      - bfloat16
+      - --quantization
+      - modelopt_mixed
+      - --moe-backend
+      - humming
+      - --attention-backend
+      - FLASHINFER_MLA_SPARSE_SM120
+      - --kv-cache-dtype
+      - fp8_ds_mla
+      # A 4 GiB KV cache runs out of memory during warmup.
+      - --kv-cache-memory-bytes
+      - "2415919104"
+      - --gpu-memory-utilization
+      - "0.98"
+      - --max-model-len
+      - "262144"
+      - --max-num-seqs
+      - "8"
+      # Smaller prefill chunks; the 8192 default runs out of memory on long prompts.
+      - --max-num-batched-tokens
+      - "2048"
+      - --disable-custom-all-reduce
+      - --no-enforce-eager
+      - --additional-config
+      - '{"kda_prefill_backend": "triton"}'
+      - --kernel-config
+      - '{"enable_flashinfer_autotune": false}'
+      - --compilation-config
+      - '{"mode": 0, "cudagraph_mode": "FULL_DECODE_ONLY", "cudagraph_capture_sizes": [1, 2, 4, 8]}'
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - glm47
+      - --reasoning-parser
+      - glm47
+
+  # Qwen3.8-27B (NVFP4) with one copy per GPU (data parallel), behind one
+  # endpoint, per vLLM's recipe: https://recipes.vllm.ai/Qwen/Qwen3.8-27B
+  qwen3.8-27b-dell:
+    max_concurrency: 16  # --max-num-seqs per GPU x 2.
+    volume: qwen-cache
+    command:
+      - Inferact/Qwen3.8-27B-NVFP4
+      - --data-parallel-size
+      - "2"
+      - --kv-cache-dtype
+      - fp8
+      - --max-model-len
+      - "262144"
+      - --max-num-seqs
+      - "8"
+      # Built-in MTP head; 3 draft tokens is the recipe's sweet spot.
+      - --speculative-config
+      - '{"method": "mtp", "num_speculative_tokens": 3}'
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - qwen3_coder
+      - --reasoning-parser
+      - qwen3

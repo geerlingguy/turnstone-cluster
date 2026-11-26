@@ -7,7 +7,7 @@ A local AI cluster configuration to run [Turnstone](https://github.com/turnstone
 | Host | Hardware | Role | Model | Runtime |
 | --- | --- | --- | --- | --- |
 | `ai-server.mmoffice.net` | Ryzen 9 9950X, 64 GB, 2x Radeon AI PRO R9700 (Ubuntu) | Turnstone + LLM | [`qwen3.8-27b-r9700`](https://huggingface.co/StillDeadcode/qwen3.8-27b-fp8) | [Radiance](https://forum.level1techs.com/t/ultimate-2x-r9700-guide-for-qwen-3-8-27b-mxfp4-200t-s-c-1-500t-s-at-c-8/257789) (Docker) |
-| `dell-precision.local` | Dell Pro Precision 9 T4, Xeon 698X, 256 GB, 2x RTX PRO 6000 Blackwell Max-Q (Ubuntu) | LLM | [`glm-5.3-flash`](https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000) | vLLM (Docker) |
+| `dell-precision.local` | Dell Pro Precision 9 T4, Xeon 698X, 256 GB, 2x RTX PRO 6000 Blackwell Max-Q (Ubuntu) | LLM | [`glm-5.3-flash`](https://huggingface.co/12fn/GLM-5.3-Flash-NVFP4-W4A16-2x-RTX-PRO-6000) or [`qwen3.8-27b-dell`](https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4) | vLLM (Docker) |
 
 The playbook (`main.yml`) has four plays:
 
@@ -22,6 +22,7 @@ The playbook (`main.yml`) has four plays:
   2. Install an OS on each node:
      - **R9700 server**: Ubuntu 26.04 LTS. In the BIOS, enable Above 4G Decoding and Resizable BAR, and put the GPUs in the two CPU-attached x16 slots (x8/x8), so the cards can use peer-to-peer transfers. The playbook installs Docker.
      - **Dell Precision**: Ubuntu 26.04 LTS. The playbook installs Docker, the NVIDIA driver, and the NVIDIA container toolkit, then reboots, and sets the node to boot to the console: GLM-5.3-Flash fills each GPU to within a few MiB, leaving no room for a desktop. After any hardware change, POST can take 45+ minutes with no video; wait it out.
+       To switch models, set `dell_model` in `host_vars/dell-precision.local.yml` to `glm-5.3-flash` (one model across both GPUs) or `qwen3.8-27b-dell` (one copy per GPU, for more concurrent requests), re-run the playbook, and update the model's alias in Turnstone.
   3. Make sure you can SSH into each node with your SSH key, as a user with `sudo` privileges. The playbook disables password logins.
   4. Clone this repository and install the required roles and collections:
 
