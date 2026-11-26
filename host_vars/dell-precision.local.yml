@@ -9,7 +9,7 @@ llm_headless: true
 llm_health_timeout_minutes: 240
 
 # Which model to serve; see dell_models below.
-dell_model: glm-5.3-flash
+dell_model: qwen3.8-27b-dell
 
 llm_model_name: "{{ dell_model }}"
 llm_max_concurrency: "{{ dell_models[dell_model].max_concurrency }}"
